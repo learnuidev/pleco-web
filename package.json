@@ -1,0 +1,41 @@
+{
+  "name": "pleco-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A desktop-class Chinese dictionary & study workspace for the web, powered by HanziJS.",
+  "scripts": {
+    "dev": "next dev --turbopack --port 4310",
+    "build": "next build",
+    "start": "next start --port 4310",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "fetch:strokes": "node scripts/fetch-stroke-data.mjs"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cn": "^0.4.0",
+    "framer-motion": "^14.2.0",
+    "hanzi": "^3.2.0",
+    "hanzi-writer": "^3.7.3",
+    "lucide-react": "^1.57.0",
+    "next": "^16.4.1",
+    "radix-ui": "^1.8.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "shadcn": "^4.21.5",
+    "tailwind-merge": "^3.7.0",
+    "tw-animate-css": "^1.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

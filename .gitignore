@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Local npm cache (kept inside the repo so installs never touch ~/.npm)
+.npm-cache/
+
+# Development tooling (browser verification harness)
+.tooling/node_modules/
+.tooling/shots/
+
+# Misc
+.DS_Store
+*.log
+.env*
+!.env.example

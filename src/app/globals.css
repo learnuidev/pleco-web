@@ -1,0 +1,380 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Pleco Web design language
+ * -------------------------
+ * Apple-flavoured materials rather than flat borders: a tinted window backdrop,
+ * translucent toolbar/sidebar chrome with hairline separators, soft layered
+ * shadows, large corner radii and a single accent blue. Semantic names follow
+ * shadcn so the generated components keep working, but the values are tuned for
+ * macOS light/dark appearance.
+ */
+
+:root {
+  --radius: 0.75rem;
+
+  /* Canvas + text (slate-tinted, like macOS "Graphite") */
+  --background: oklch(0.964 0.004 264);
+  --foreground: oklch(0.235 0.012 264);
+
+  /* Surfaces: content cards sit on the canvas */
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0 / 82%);
+  --popover-foreground: var(--foreground);
+
+  /* Accent = macOS system blue */
+  --brand: oklch(0.6 0.203 258);
+  --primary: oklch(0.6 0.203 258);
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.936 0.005 264);
+  --secondary-foreground: oklch(0.32 0.012 264);
+  --muted: oklch(0.945 0.004 264);
+  --muted-foreground: oklch(0.545 0.014 264);
+  --accent: oklch(0.921 0.006 264);
+  --accent-foreground: oklch(0.28 0.012 264);
+  --destructive: oklch(0.6 0.21 25);
+  --success: oklch(0.62 0.16 148);
+  --warning: oklch(0.72 0.16 68);
+
+  --border: oklch(0.882 0.005 264);
+  --input: oklch(0.905 0.005 264);
+  --ring: oklch(0.6 0.203 258 / 45%);
+
+  /* Window chrome */
+  --chrome: oklch(0.984 0.003 264 / 72%);
+  --chrome-strong: oklch(0.988 0.003 264 / 88%);
+  --hairline: oklch(0.878 0.005 264 / 70%);
+  --hairline-strong: oklch(0.86 0.005 264);
+
+  /* Character ink + paper */
+  --ink: oklch(0.28 0.012 264);
+  --ink-soft: oklch(0.56 0.012 264);
+  --paper: oklch(1 0 0);
+
+  --sidebar: oklch(0.984 0.003 264 / 62%);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.6 0.203 258 / 12%);
+  --sidebar-accent-foreground: var(--primary);
+  --sidebar-border: var(--hairline);
+  --sidebar-ring: var(--ring);
+
+  --chart-1: oklch(0.6 0.203 258);
+  --chart-2: oklch(0.62 0.16 148);
+  --chart-3: oklch(0.72 0.16 68);
+  --chart-4: oklch(0.62 0.2 320);
+  --chart-5: oklch(0.58 0.14 200);
+
+  /* Elevation ladder (used through utility classes below) */
+  --shadow-1: 0 1px 2px oklch(0.2 0.02 264 / 6%), 0 1px 1px oklch(0.2 0.02 264 / 4%);
+  --shadow-2: 0 4px 14px oklch(0.2 0.02 264 / 8%), 0 1px 3px oklch(0.2 0.02 264 / 5%);
+  --shadow-3: 0 12px 32px oklch(0.2 0.02 264 / 12%), 0 2px 8px oklch(0.2 0.02 264 / 6%);
+  --shadow-4: 0 28px 70px oklch(0.2 0.02 264 / 22%), 0 8px 24px oklch(0.2 0.02 264 / 12%);
+}
+
+.dark {
+  --background: oklch(0.191 0.008 264);
+  --foreground: oklch(0.955 0.003 264);
+
+  --card: oklch(0.231 0.009 264);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.245 0.009 264 / 88%);
+  --popover-foreground: var(--foreground);
+
+  --brand: oklch(0.66 0.185 258);
+  --primary: oklch(0.66 0.185 258);
+  --primary-foreground: oklch(0.16 0.02 264);
+
+  --secondary: oklch(0.276 0.009 264);
+  --secondary-foreground: oklch(0.94 0.003 264);
+  --muted: oklch(0.268 0.009 264);
+  --muted-foreground: oklch(0.68 0.011 264);
+  --accent: oklch(0.298 0.01 264);
+  --accent-foreground: oklch(0.96 0.003 264);
+  --destructive: oklch(0.66 0.19 25);
+  --success: oklch(0.68 0.15 148);
+  --warning: oklch(0.78 0.15 72);
+
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.66 0.185 258 / 55%);
+
+  --chrome: oklch(0.226 0.009 264 / 68%);
+  --chrome-strong: oklch(0.238 0.009 264 / 88%);
+  --hairline: oklch(1 0 0 / 8%);
+  --hairline-strong: oklch(1 0 0 / 14%);
+
+  --ink: oklch(0.93 0.004 264);
+  --ink-soft: oklch(0.6 0.01 264);
+  --paper: oklch(0.245 0.009 264);
+
+  --sidebar: oklch(0.216 0.008 264 / 66%);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.66 0.185 258 / 18%);
+  --sidebar-accent-foreground: oklch(0.86 0.06 258);
+  --sidebar-border: var(--hairline);
+  --sidebar-ring: var(--ring);
+
+  --shadow-1: 0 1px 2px oklch(0 0 0 / 32%);
+  --shadow-2: 0 4px 14px oklch(0 0 0 / 38%);
+  --shadow-3: 0 14px 36px oklch(0 0 0 / 46%);
+  --shadow-4: 0 30px 80px oklch(0 0 0 / 60%), 0 8px 24px oklch(0 0 0 / 40%);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-chrome: var(--chrome);
+  --color-hairline: var(--hairline);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-paper: var(--paper);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-hanzi: var(--font-hanzi);
+  --font-heading: var(--font-sans);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 10px);
+  --radius-3xl: calc(var(--radius) + 18px);
+
+  --shadow-hairline: var(--shadow-1);
+  --shadow-raised: var(--shadow-2);
+  --shadow-float: var(--shadow-3);
+  --shadow-window: var(--shadow-4);
+
+  --ease-apple: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    /* The window backdrop: a barely-there vertical wash plus a tinted radial
+       glow, the way macOS paints a window behind translucent chrome. */
+    background-image:
+      radial-gradient(
+        120% 80% at 12% -10%,
+        color-mix(in oklab, var(--brand) 8%, transparent) 0%,
+        transparent 55%
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--background) 96%, white) 0%,
+        var(--background) 42%,
+        color-mix(in oklab, var(--background) 94%, black) 100%
+      );
+    background-attachment: fixed;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(
+        120% 80% at 12% -10%,
+        color-mix(in oklab, var(--brand) 16%, transparent) 0%,
+        transparent 55%
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--background) 92%, white) 0%,
+        var(--background) 45%
+      );
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--brand) 26%, transparent);
+  }
+
+  /* Slim, unobtrusive scrollbars in the macOS register. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--foreground) 18%, transparent) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklab, var(--foreground) 16%, transparent);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklab, var(--foreground) 28%, transparent);
+  }
+
+  input,
+  textarea,
+  button {
+    font: inherit;
+  }
+}
+
+@layer utilities {
+  /* Translucent chrome, used by the toolbar, sidebar and popovers. */
+  .material {
+    background-color: var(--chrome);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+
+  .material-strong {
+    background-color: var(--chrome-strong);
+    backdrop-filter: saturate(180%) blur(30px);
+    -webkit-backdrop-filter: saturate(180%) blur(30px);
+  }
+
+  .hairline-b {
+    box-shadow: inset 0 -1px 0 0 var(--hairline);
+  }
+
+  .hairline-t {
+    box-shadow: inset 0 1px 0 0 var(--hairline);
+  }
+
+  .hairline-r {
+    box-shadow: inset -1px 0 0 0 var(--hairline);
+  }
+
+  .hairline-ring {
+    box-shadow:
+      inset 0 0 0 1px var(--hairline),
+      var(--shadow-1);
+  }
+
+  /* Focus ring in the Apple register: soft, offset halo. */
+  .focus-halo {
+    @apply outline-none;
+  }
+
+  .focus-halo:focus-visible {
+    box-shadow:
+      0 0 0 3px color-mix(in oklab, var(--brand) 28%, transparent),
+      0 0 0 1px color-mix(in oklab, var(--brand) 60%, transparent);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .glyph {
+    font-family: var(--font-hanzi);
+    font-feature-settings: "kern" 1;
+  }
+
+  /* Grid paper used behind stroke practice, like a 米字格 exercise book. */
+  .tiange-grid {
+    background-image:
+      linear-gradient(
+        to right,
+        transparent calc(50% - 0.5px),
+        color-mix(in oklab, var(--foreground) 14%, transparent) calc(50% - 0.5px),
+        color-mix(in oklab, var(--foreground) 14%, transparent) calc(50% + 0.5px),
+        transparent calc(50% + 0.5px)
+      ),
+      linear-gradient(
+        to bottom,
+        transparent calc(50% - 0.5px),
+        color-mix(in oklab, var(--foreground) 14%, transparent) calc(50% - 0.5px),
+        color-mix(in oklab, var(--foreground) 14%, transparent) calc(50% + 0.5px),
+        transparent calc(50% + 0.5px)
+      );
+  }
+}
+
+/*
+ * Font stack. `next/font` loads Inter for Latin text and exposes it as
+ * --font-inter; Chinese falls through to the platform CJK faces (PingFang on
+ * macOS, Microsoft YaHei on Windows, Noto Sans CJK on Linux).
+ */
+:root {
+  --font-sans: var(--font-inter), ui-sans-serif, -apple-system, BlinkMacSystemFont,
+    "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  --font-hanzi: "PingFang SC", "Hiragino Sans GB", "Songti SC", "Noto Sans SC",
+    "Source Han Sans SC", "Microsoft YaHei", sans-serif;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

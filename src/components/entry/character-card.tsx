@@ -1,14 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Boxes, ChevronRight, GitBranch, Layers, TrendingUp } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { ChevronRight, GitBranch, Layers, TrendingUp } from "lucide-react";
 import { useState } from "react";
 
 import { Glyph } from "@/components/glyph";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Panel } from "@/components/workbench/panel";
-import { characterHref } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import type { CharacterInfo } from "@/lib/dictionary/types";
 
@@ -199,11 +197,6 @@ export function CharacterCard({
           </div>
         ) : null}
 
-        {/* Characters built on this radical / component */}
-        {info.usedIn && info.usedIn.total > 0 ? (
-          <CharacterUsage glyph={info.glyph} usedIn={info.usedIn} />
-        ) : null}
-
         {/* Phonetic regularity */}
         {info.phoneticGroups.length > 0 ? (
           <div>
@@ -277,29 +270,6 @@ export function CharacterCard({
           </div>
         ) : null}
 
-        {/* Words built from this character */}
-        {info.wordsWithCharacter.length > 0 ? (
-          <div>
-            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-              Common words
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {info.wordsWithCharacter.map((word) => (
-                <button
-                  key={word.id}
-                  type="button"
-                  onClick={() => onSearch(word.simplified)}
-                  className="focus-halo inline-flex items-center gap-1.5 rounded-lg bg-foreground/4 px-2 py-1 text-[12px] transition-colors hover:bg-primary/10"
-                >
-                  <span className="glyph">{word.simplified}</span>
-                  <span className="text-muted-foreground">
-                    {word.definition.split("/")[0]?.slice(0, 18)}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
     </div>
   );
@@ -314,61 +284,6 @@ function frequencyBarPercent(rank: number): number {
   const MAX_RANK = 9933;
   const clamped = Math.min(Math.max(rank, 1), MAX_RANK);
   return Math.max(4, 100 - (Math.log10(clamped) / Math.log10(MAX_RANK)) * 100);
-}
-
-const USED_IN_VISIBLE = 36;
-
-/**
- * The reverse view of decomposition: the characters that use this radical or
- * component. Commonest first, each one linking to its own page.
- */
-function CharacterUsage({
-  glyph,
-  usedIn,
-}: {
-  glyph: string;
-  usedIn: NonNullable<CharacterInfo["usedIn"]>;
-}) {
-  const router = useRouter();
-  const [expanded, setExpanded] = useState(false);
-  const shown = expanded ? usedIn.characters : usedIn.characters.slice(0, USED_IN_VISIBLE);
-  const hidden = usedIn.characters.length - shown.length;
-
-  return (
-    <div>
-      <div className="mb-2 flex items-center gap-2">
-        <Boxes className="size-3.5 text-muted-foreground" />
-        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-          Characters using {glyph}
-        </span>
-        <span className="tabular ml-auto rounded-full bg-foreground/6 px-1.5 py-px text-[10px] text-muted-foreground">
-          {usedIn.total}
-        </span>
-      </div>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-wrap gap-1">
-        {shown.map((character) => (
-          <button
-            key={character}
-            type="button"
-            onClick={() => router.push(characterHref(character))}
-            title={`Open ${character}`}
-            className="glyph focus-halo rounded-lg bg-foreground/4 px-1.5 py-0.5 text-[17px] leading-normal transition-colors hover:bg-primary/12 hover:text-foreground"
-          >
-            {character}
-          </button>
-        ))}
-        {hidden > 0 ? (
-          <button
-            type="button"
-            onClick={() => setExpanded(true)}
-            className="focus-halo rounded-lg bg-foreground/6 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-primary/12 hover:text-foreground"
-          >
-            +{hidden} more
-          </button>
-        ) : null}
-      </motion.div>
-    </div>
-  );
 }
 
 function Chip({

@@ -109,6 +109,7 @@ process); every search after that is single-digit milliseconds.
 | `/dictionary` | The workbench, nothing selected |
 | `/dictionary/:character` | That entry in the reader |
 | `/dictionary/想?tab=characters` | The same entry with a reader tab open |
+| `/dictionary/木?tab=characters&sub=using` | The Characters tab's "Characters using 木" sub-tab |
 | `/browse` | Characters by frequency, stroke counts and the radical inventory |
 | `/browse?tab=strokes&view=chart&stroke=8&sort=asc` | Browse, with axis, chart, filter and sort in the URL |
 | `/text` | The text reader |
@@ -130,9 +131,11 @@ address bar simply follows what the reader shows. Selecting a result, a Recent
 item, a saved word or a related entry rewrites the URL with `replaceState` (no
 reload), so every entry is linkable and shareable while the shell keeps its
 state. The reader's tabs are addressable too: `?tab=characters` opens straight
-into decomposition, and a Characters tab on a radical lists the characters built
-on it. Anything that is a character (a browse card, a radical tile, one of those
-components) navigates to its `/dictionary/:character` URL.
+into decomposition, and the Characters tab is itself sub-tabbed — **Breakdown**
+(the decomposition cards), **Characters using** this radical, **Common words**,
+and **Words containing** it — with the choice carried as `&sub=words`. Anything
+that is a character (a browse card, a radical tile, one of those lists) navigates
+to its `/dictionary/:character` URL.
 
 ```bash
 npm run build && npm start   # production build on :4310

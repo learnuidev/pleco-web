@@ -31,16 +31,40 @@ export function isReaderTab(value: string | null | undefined): value is ReaderTa
   return typeof value === "string" && (READER_TABS as readonly string[]).includes(value);
 }
 
-/** `/dictionary/想?tab=characters` — the default tab stays out of the URL. */
-export function entryHref(glyph: string, tab?: ReaderTabKey | null): string {
-  const base = characterHref(glyph);
-  return tab && tab !== "strokes" ? `${base}?tab=${tab}` : base;
+/** Sub-tabs inside the reader's Characters tab. */
+export const READER_SUB_TABS = ["breakdown", "using", "words", "containing"] as const;
+export type ReaderSubTabKey = (typeof READER_SUB_TABS)[number];
+
+export function isReaderSubTab(value: string | null | undefined): value is ReaderSubTabKey {
+  return typeof value === "string" && (READER_SUB_TABS as readonly string[]).includes(value);
 }
 
-/** Keep the address bar on the entry *and* its open tab. */
-export function syncEntryUrl(glyph: string, tab?: ReaderTabKey | null): void {
+/**
+ * `/dictionary/想` · `/dictionary/想?tab=characters` · `…?tab=characters&sub=words`
+ *
+ * Defaults stay out of the URL: `strokes` is the default tab and `breakdown` the
+ * default sub-tab.
+ */
+export function entryHref(
+  glyph: string,
+  tab?: ReaderTabKey | null,
+  sub?: ReaderSubTabKey | null,
+): string {
+  const params = new URLSearchParams();
+  if (tab && tab !== "strokes") params.set("tab", tab);
+  if (tab === "characters" && sub && sub !== "breakdown") params.set("sub", sub);
+  const query = params.toString();
+  return query ? `${characterHref(glyph)}?${query}` : characterHref(glyph);
+}
+
+/** Keep the address bar on the entry *and* its open tab / sub-tab. */
+export function syncEntryUrl(
+  glyph: string,
+  tab?: ReaderTabKey | null,
+  sub?: ReaderSubTabKey | null,
+): void {
   if (typeof window === "undefined" || !glyph) return;
-  const href = entryHref(glyph, tab);
+  const href = entryHref(glyph, tab, sub);
   const current = `${window.location.pathname}${window.location.search}`;
   if (current !== href) window.history.replaceState(null, "", href);
 }

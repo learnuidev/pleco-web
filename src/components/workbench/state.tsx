@@ -14,7 +14,7 @@ import {
 
 import { useDictionarySearch } from "@/hooks/use-dictionary-search";
 import type { ApiSearchResponse } from "@/lib/api-types";
-import { characterHref, syncDictionaryUrl, type ReaderTabKey } from "@/lib/routes";
+import { characterHref, syncDictionaryUrl } from "@/lib/routes";
 import { WORKBENCH_STORAGE_KEY } from "@/lib/storage";
 
 export type Script = "simplified" | "traditional";
@@ -43,8 +43,6 @@ export type WorkbenchState = {
   selectedId: number | null;
   /** Set when the user picked a word from the result list, so the list keeps its own highlight. */
   activeHitId: number | null;
-  /** Which reader tab is open; mirrored into `/dictionary/:character?tab=…`. */
-  readerTab: ReaderTabKey;
   saved: SavedItem[];
   history: HistoryItem[];
   textInput: string;
@@ -60,8 +58,7 @@ export type WorkbenchAction =
   | { type: "select-entry"; id: number | null; hitId?: number | null }
   | { type: "open-entry"; id: number }
   /** Seeds state from the URL (`/dictionary/:character?tab=…`). */
-  | { type: "route-entry"; query?: string; selectedId?: number | null; readerTab?: ReaderTabKey }
-  | { type: "set-reader-tab"; tab: ReaderTabKey }
+  | { type: "route-entry"; query?: string; selectedId?: number | null }
   | { type: "toggle-save"; item: SavedItem }
   | { type: "remove-saved"; id: number }
   | { type: "push-history"; item: HistoryItem }
@@ -117,10 +114,7 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
         query: action.query ?? state.query,
         selectedId: action.selectedId === undefined ? state.selectedId : action.selectedId,
         activeHitId: action.selectedId === undefined ? state.activeHitId : action.selectedId,
-        readerTab: action.readerTab ?? state.readerTab,
       };
-    case "set-reader-tab":
-      return { ...state, readerTab: action.tab };
     case "toggle-save": {
       const exists = state.saved.some((item) => item.id === action.item.id);
       return {
@@ -151,7 +145,6 @@ const initialState: WorkbenchState = {
   showPinyinMarks: true,
   selectedId: null,
   activeHitId: null,
-  readerTab: "strokes",
   saved: [],
   history: [],
   textInput: "",
@@ -196,7 +189,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
           script: parsed.script ?? "simplified",
           showPinyinMarks: parsed.showPinyinMarks ?? true,
           textInput: parsed.textInput ?? "",
-          // query / selectedId / readerTab are owned by the URL (or the session),
+          // query / selectedId / the reader tab are owned by the URL (or the session),
           // never by storage: a shared link must not be overridden by whatever
           // this browser looked at last.
           // An explicit appearance choice sticks across reloads; the OS

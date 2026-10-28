@@ -1,16 +1,28 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AudioLines, Hash, Info, Layers, Loader2, PenLine, Quote } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CharacterCard } from "@/components/entry/character-card";
+import {
+  CharactersUsingPanel,
+  CommonWordsPanel,
+  WordsContainingPanel,
+} from "@/components/entry/character-lists";
 import { EntryHero } from "@/components/entry/entry-hero";
 import { ExampleBuckets, RelatedList } from "@/components/entry/example-buckets";
 import { Panel } from "@/components/workbench/panel";
 import { StrokeOrderPanel } from "@/components/stroke/stroke-order-panel";
 import { useWorkbench, type SavedItem } from "@/components/workbench/state";
-import { syncEntryUrl } from "@/lib/routes";
+import {
+  entryHref,
+  isReaderSubTab,
+  isReaderTab,
+  syncEntryUrl,
+  type ReaderSubTabKey,
+} from "@/lib/routes";
 import type { EntryDetail } from "@/lib/dictionary/types";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +35,14 @@ const TABS: Array<{ key: TabKey; label: string; icon: typeof PenLine }> = [
   { key: "details", label: "Details", icon: Info },
 ];
 
+/** Sub-tabs of the Characters pane; order is the display order. */
+const CHARACTER_SUB_TABS: Array<{ key: ReaderSubTabKey; label: string }> = [
+  { key: "breakdown", label: "Breakdown" },
+  { key: "using", label: "Characters using" },
+  { key: "words", label: "Common words" },
+  { key: "containing", label: "Words containing" },
+];
+
 export function EntryDetailPane() {
   const { state, dispatch, headword, traditionalHint, runSearch, selectEntry } = useWorkbench();
   const entryId = state.selectedId;
@@ -31,8 +51,33 @@ export function EntryDetailPane() {
   const [detail, setDetail] = useState<EntryDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const tab: TabKey = state.readerTab;
-  const setTab = (next: TabKey) => dispatch({ type: "set-reader-tab", tab: next });
+  // The URL owns which tab is open: it is read here and rewritten through the
+  // router, so a link reproduces exactly what is on screen.
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabParam = searchParams.get("tab");
+  const subParam = searchParams.get("sub");
+  const tab: TabKey = isReaderTab(tabParam) ? tabParam : "strokes";
+  const requestedSub: ReaderSubTabKey = isReaderSubTab(subParam) ? subParam : "breakdown";
+  const subTab = detail ? activeSubTab(detail, requestedSub) : requestedSub;
+
+  /** Rewrite the URL for a tab change; the re-render follows from the route. */
+  const goToTab = useCallback(
+    (nextTab: TabKey, nextSub: ReaderSubTabKey) => {
+      const current = detail?.entry.simplified ?? state.query;
+      if (!current) return;
+      const href = entryHref(current, nextTab, nextSub);
+      if (`${window.location.pathname}${window.location.search}` !== href) {
+        // push, not replace: Back walks the tabs you visited, and the URL stays
+        // the single source of truth for what is on screen.
+        router.push(href, { scroll: false });
+      }
+    },
+    [detail, state.query, router],
+  );
+
+  const setTab = (next: TabKey) => goToTab(next, subTab);
+  const setSubTab = (next: ReaderSubTabKey) => goToTab("characters", next);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -83,11 +128,11 @@ export function EntryDetailPane() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail?.entry.id]);
 
-  /** The address bar follows the reader: /dictionary/:headword?tab=… */
+  /** Keep the URL on the entry the reader is actually showing. */
   useEffect(() => {
     if (!detail) return;
-    syncEntryUrl(detail.entry.simplified, tab);
-  }, [detail, tab]);
+    syncEntryUrl(detail.entry.simplified, tab, subTab);
+  }, [detail, tab, subTab]);
 
   const isSaved = useMemo(
     () => (detail ? state.saved.some((item) => item.id === detail.entry.id) : false),
@@ -220,34 +265,31 @@ export function EntryDetailPane() {
                 ) : null}
 
                 {tab === "characters" ? (
-                  <div className="space-y-4">
-                    {detail.characters.map((info) => (
-                      <CharacterCard key={info.glyph} info={info} onSearch={onSearch} />
-                    ))}
-                    {detail.contains.length > 0 ? (
-                      <Panel title="Words containing this character" compact contentClassName="p-1.5">
-                        <ul className="grid gap-0.5 sm:grid-cols-2">
-                          {detail.contains.map((item) => (
-                            <li key={item.entry.id}>
-                              <button
-                                type="button"
-                                onClick={() => onSearch(item.entry.simplified)}
-                                className="focus-halo flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-primary/8"
-                              >
-                                <span className="glyph text-[17px]">{item.entry.simplified}</span>
-                                <span className="min-w-0 flex-1">
-                                  <span className="block truncate text-[11.5px] text-primary">
-                                    {item.pinyin}
-                                  </span>
-                                  <span className="block truncate text-[11.5px] text-muted-foreground">
-                                    {item.entry.definition.split("/")[0]}
-                                  </span>
-                                </span>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </Panel>
+                  <div className="space-y-3">
+                    <CharacterSubTabs
+                      detail={detail}
+                      active={subTab}
+                      onChange={setSubTab}
+                    />
+
+                    {subTab === "breakdown" ? (
+                      <div className="space-y-4">
+                        {detail.characters.map((info) => (
+                          <CharacterCard key={info.glyph} info={info} onSearch={onSearch} />
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {subTab === "using" ? (
+                      <CharactersUsingPanel characters={detail.characters} />
+                    ) : null}
+
+                    {subTab === "words" ? (
+                      <CommonWordsPanel characters={detail.characters} />
+                    ) : null}
+
+                    {subTab === "containing" ? (
+                      <WordsContainingPanel contains={detail.contains} />
                     ) : null}
                   </div>
                 ) : null}
@@ -343,6 +385,84 @@ export function EntryDetailPane() {
           </div>
         </motion.div>
       </AnimatePresence>
+    </div>
+  );
+}
+
+/** Sub-tabs that actually have content for this entry. */
+function availableSubTabs(detail: EntryDetail): ReaderSubTabKey[] {
+  const hasUsing = detail.characters.some((info) => (info.usedIn?.total ?? 0) > 0);
+  const hasWords = detail.characters.some((info) => info.wordsWithCharacter.length > 0);
+  const hasContaining = detail.contains.length > 0;
+  return [
+    "breakdown",
+    ...(hasUsing ? (["using"] as const) : []),
+    ...(hasWords ? (["words"] as const) : []),
+    ...(hasContaining ? (["containing"] as const) : []),
+  ];
+}
+
+/** The sub-tab to show: the one in the URL when it exists, else Breakdown. */
+function activeSubTab(detail: EntryDetail, requested: ReaderSubTabKey): ReaderSubTabKey {
+  return availableSubTabs(detail).includes(requested) ? requested : "breakdown";
+}
+
+function CharacterSubTabs({
+  detail,
+  active,
+  onChange,
+}: {
+  detail: EntryDetail;
+  active: ReaderSubTabKey;
+  onChange: (tab: ReaderSubTabKey) => void;
+}) {
+  const available = availableSubTabs(detail);
+  if (available.length <= 1) return null;
+
+  const count = (key: ReaderSubTabKey): number | null => {
+    if (key === "using") {
+      return detail.characters.reduce((sum, info) => sum + (info.usedIn?.total ?? 0), 0);
+    }
+    if (key === "words") {
+      return detail.characters.reduce((sum, info) => sum + info.wordsWithCharacter.length, 0);
+    }
+    if (key === "containing") return detail.contains.length;
+    return null;
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1 rounded-xl bg-foreground/5 p-1">
+      {CHARACTER_SUB_TABS.filter((option) => available.includes(option.key)).map((option) => {
+        const isActive = option.key === active;
+        const badge = count(option.key);
+        return (
+          <button
+            key={option.key}
+            type="button"
+            onClick={() => onChange(option.key)}
+            className={cn(
+              "focus-halo relative rounded-lg px-2.5 py-1 text-[11.5px] font-medium transition-colors",
+              isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {isActive ? (
+              <motion.span
+                layoutId="character-sub-tab"
+                className="absolute inset-0 rounded-lg bg-card shadow-[0_1px_2px_rgba(0,0,0,0.10)]"
+                transition={{ type: "spring", stiffness: 520, damping: 40 }}
+              />
+            ) : null}
+            <span className="relative inline-flex items-center gap-1.5">
+              {option.label}
+              {badge !== null ? (
+                <span className="tabular rounded-full bg-foreground/8 px-1.5 py-px text-[10px] text-muted-foreground">
+                  {badge}
+                </span>
+              ) : null}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

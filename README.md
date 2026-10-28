@@ -136,6 +136,10 @@ panel is closed; it is open by default), `stroke` (the active stroke filter) and
 grid is a link you can bookmark or paste. Both axes chart their stroke
 distribution, and the bars act as filters.
 
+A radical's **Characters using** sub-tab groups its family into **Popular** (Jun Da
+rank under 5,000) and **Less popular** (rank 5,000+ or unranked), each row showing
+the glyph, pinyin, gloss and rank.
+
 The dictionary is one layout — sidebar, search, result list and reader — and the
 address bar simply follows what the reader shows. Selecting a result, a Recent
 item, a saved word or a related entry rewrites the URL with `replaceState` (no

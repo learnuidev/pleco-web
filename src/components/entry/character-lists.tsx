@@ -8,6 +8,7 @@ import { Glyph } from "@/components/glyph";
 import { Panel } from "@/components/workbench/panel";
 import type { CharacterInfo, EntryDetail } from "@/lib/dictionary/types";
 import { characterHref } from "@/lib/routes";
+import { cn } from "@/lib/utils";
 
 const VISIBLE = 42;
 
@@ -35,7 +36,7 @@ export function CharactersUsingPanel({ characters }: { characters: CharacterInfo
             </span>
           }
         >
-          <GlyphChips characters={info.usedIn?.characters ?? []} />
+          <UsedInGroups characters={info.usedIn?.characters ?? []} />
         </Panel>
       ))}
     </div>
@@ -118,12 +119,67 @@ export function WordsContainingPanel({
   );
 }
 
-/** A grid of character rows: glyph, reading, gloss and frequency rank. */
-function GlyphChips({
+/** Jun Da rank under this counts as popular; unranked characters are the rest. */
+const POPULAR_MAX_RANK = 5000;
+
+type UsedInCharacter = NonNullable<NonNullable<CharacterInfo["usedIn"]>["characters"]>[number];
+
+/**
+ * The radical's family, split into characters people actually meet (rank under
+ * 5,000) and the rest, each as glyph / reading / gloss / rank rows.
+ */
+function UsedInGroups({ characters }: { characters: UsedInCharacter[] }) {
+  const popular = characters.filter((character) => isPopular(character.rank));
+  const rest = characters.filter((character) => !isPopular(character.rank));
+
+  return (
+    <div className="space-y-3">
+      {popular.length > 0 ? (
+        <GroupBlock label="Popular" count={popular.length} tone="primary" characters={popular} />
+      ) : null}
+      {rest.length > 0 ? (
+        <GroupBlock label="Less popular" count={rest.length} tone="muted" characters={rest} />
+      ) : null}
+    </div>
+  );
+}
+
+function GroupBlock({
+  label,
+  count,
+  tone,
   characters,
 }: {
-  characters: NonNullable<NonNullable<CharacterInfo["usedIn"]>["characters"]>;
+  label: string;
+  count: number;
+  tone: "primary" | "muted";
+  characters: UsedInCharacter[];
 }) {
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center gap-2">
+        <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          {label}
+        </span>
+        <span
+          className={cn(
+            "tabular rounded-full px-1.5 py-px text-[9.5px]",
+            tone === "primary" ? "bg-primary/10 text-primary" : "bg-foreground/6 text-muted-foreground",
+          )}
+        >
+          {count}
+        </span>
+        <span className="text-[9.5px] text-muted-foreground/70">
+          {tone === "primary" ? "rank under 5,000" : "rank 5,000+ or unranked"}
+        </span>
+      </div>
+      <UsedInGrid characters={characters} />
+    </div>
+  );
+}
+
+/** A grid of character rows: glyph, reading, gloss and frequency rank. */
+function UsedInGrid({ characters }: { characters: UsedInCharacter[] }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? characters : characters.slice(0, VISIBLE);
@@ -149,12 +205,21 @@ function GlyphChips({
               </span>
               {character.rank ? (
                 <span
-                  className="tabular shrink-0 rounded-full bg-foreground/6 px-1.5 py-px text-[9.5px] text-muted-foreground"
+                  className={cn(
+                    "tabular shrink-0 rounded-full px-1.5 py-px text-[9.5px]",
+                    isPopular(character.rank)
+                      ? "bg-primary/10 text-primary"
+                      : "bg-foreground/6 text-muted-foreground",
+                  )}
                   title={`Frequency rank #${character.rank}`}
                 >
                   #{character.rank}
                 </span>
-              ) : null}
+              ) : (
+                <span className="tabular shrink-0 rounded-full bg-foreground/6 px-1.5 py-px text-[9.5px] text-muted-foreground">
+                  unranked
+                </span>
+              )}
             </span>
             <span className="block truncate text-[11.5px] text-muted-foreground">
               {character.meaning || "—"}
@@ -173,6 +238,10 @@ function GlyphChips({
       ) : null}
     </div>
   );
+}
+
+function isPopular(rank: number | null): boolean {
+  return rank !== null && rank < POPULAR_MAX_RANK;
 }
 
 /** Panel icons, exported so the tab bar can share them. */

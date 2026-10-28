@@ -28,7 +28,7 @@ function isRealGlyph(glyph: string | undefined | null): boolean {
 }
 const MAX_WORDS_WITH_CHARACTER = 24;
 const MAX_COMPONENT_EXAMPLES = 12;
-const MAX_USED_IN = 96;
+const MAX_USED_IN = 120;
 
 export function canonicalCharacterEntry(glyph: string) {
   const { entries } = getDictionary();

@@ -52,7 +52,18 @@ function charactersUsing(glyph: string, isBuildingBlock: boolean): CharacterInfo
     return rankA - rankB;
   });
 
-  return { total: list.length, characters: ranked.slice(0, MAX_USED_IN) };
+  return {
+    total: list.length,
+    characters: ranked.slice(0, MAX_USED_IN).map((character) => {
+      const frequency = getCharacterFrequency(character);
+      return {
+        glyph: character,
+        rank: frequency?.rank ?? null,
+        pinyin: frequency?.pinyin ? pinyinToMarks(frequency.pinyin.split("/")[0]) : "",
+        meaning: frequency?.meaning ?? "",
+      };
+    }),
+  };
 }
 
 export function buildCharacterInfo(glyph: string): CharacterInfo {

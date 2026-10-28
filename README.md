@@ -71,16 +71,16 @@ with the same data set Pleco-style apps use.
 
 **Browse**
 
-Two inventories, one toolbar language:
+Two inventories, one toolbar language (Radicals opens first):
 
-- **Characters** — the frequency-ranked corpus, filterable by stroke count,
-  ordered most-common or least-common first, with #N, pinyin and gloss on each
-  tile.
 - **Radicals** — the classic 214-radical Kangxi inventory. Every form is its own
   browsable entry: the canonical glyph plus each variant (氵 氺, 忄, 扌, ⺮ ケ,
   飠 食 …), each with its own stroke count, meaning, pinyin and usage, so stroke
   filters and the distribution chart count variants independently. Sortable by
   Kangxi number or by stroke count either way.
+- **Characters** — the frequency-ranked corpus, filterable by stroke count,
+  ordered most-common or least-common first, with #N, pinyin and gloss on each
+  tile.
 - Both axes open a gradient-filled stroke-distribution chart (recharts) whose
   bars double as filters, and both keep their state in the URL
   (`?tab=characters&view=grid&stroke=7&sort=rare`, and `view=chart` is the default).

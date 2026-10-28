@@ -35,7 +35,7 @@ export function CharactersUsingPanel({ characters }: { characters: CharacterInfo
             </span>
           }
         >
-          <GlyphChips glyphs={info.usedIn?.characters ?? []} />
+          <GlyphChips characters={info.usedIn?.characters ?? []} />
         </Panel>
       ))}
     </div>
@@ -118,31 +118,55 @@ export function WordsContainingPanel({
   );
 }
 
-/** A wrapped, expandable row of character links. */
-function GlyphChips({ glyphs }: { glyphs: string[] }) {
+/** A grid of character rows: glyph, reading, gloss and frequency rank. */
+function GlyphChips({
+  characters,
+}: {
+  characters: NonNullable<NonNullable<CharacterInfo["usedIn"]>["characters"]>;
+}) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
-  const shown = expanded ? glyphs : glyphs.slice(0, VISIBLE);
-  const hidden = glyphs.length - shown.length;
+  const shown = expanded ? characters : characters.slice(0, VISIBLE);
+  const hidden = characters.length - shown.length;
 
   return (
-    <div className="flex flex-wrap gap-1">
-      {shown.map((glyph) => (
+    <div className="grid gap-1 sm:grid-cols-2 xl:grid-cols-3">
+      {shown.map((character) => (
         <button
-          key={glyph}
+          key={character.glyph}
           type="button"
-          onClick={() => router.push(characterHref(glyph))}
-          title={`Open ${glyph}`}
-          className="glyph focus-halo rounded-lg bg-foreground/4 px-1.5 py-0.5 text-[17px] leading-normal transition-colors hover:bg-primary/12 hover:text-foreground"
+          onClick={() => router.push(characterHref(character.glyph))}
+          title={`Open ${character.glyph}`}
+          className="focus-halo flex items-center gap-2.5 rounded-xl bg-foreground/4 px-2 py-1.5 text-left transition-colors hover:bg-primary/8"
         >
-          {glyph}
+          <Glyph size="md" className="shrink-0">
+            {character.glyph}
+          </Glyph>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-baseline gap-1.5">
+              <span className="truncate text-[12.5px] font-medium text-primary">
+                {character.pinyin}
+              </span>
+              {character.rank ? (
+                <span
+                  className="tabular shrink-0 rounded-full bg-foreground/6 px-1.5 py-px text-[9.5px] text-muted-foreground"
+                  title={`Frequency rank #${character.rank}`}
+                >
+                  #{character.rank}
+                </span>
+              ) : null}
+            </span>
+            <span className="block truncate text-[11.5px] text-muted-foreground">
+              {character.meaning || "—"}
+            </span>
+          </span>
         </button>
       ))}
       {hidden > 0 ? (
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="focus-halo rounded-lg bg-foreground/6 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-primary/12 hover:text-foreground"
+          className="focus-halo flex items-center justify-center rounded-xl bg-foreground/6 px-2 py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-primary/12 hover:text-foreground"
         >
           +{hidden} more
         </button>

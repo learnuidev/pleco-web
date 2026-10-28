@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 const NAV: Array<{ href: string; label: string; icon: typeof Search; hint: string }> = [
   { href: "/dictionary", label: "Dictionary", icon: Search, hint: "Search the dictionary" },
   { href: "/text", label: "Text", icon: FileText, hint: "Paste text and read it character by character" },
-  { href: "/browse", label: "Browse", icon: Compass, hint: "Browse characters and radicals" },
+  { href: "/browse", label: "Browse", icon: Compass, hint: "Browse radicals and characters" },
   { href: "/history", label: "History", icon: Clock3, hint: "Everything you opened, in 20-minute blocks" },
   { href: "/saved", label: "Saved words", icon: BookMarked, hint: "Your saved words" },
 ];

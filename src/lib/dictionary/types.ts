@@ -65,7 +65,10 @@ export type CharacterInfo = {
    * Characters that use this one as a building block — the radical's family.
    * Only filled for radicals and primitives, ordered by frequency.
    */
-  usedIn: { total: number; characters: string[] } | null;
+  usedIn: {
+    total: number;
+    characters: Array<{ glyph: string; rank: number | null; pinyin: string; meaning: string }>;
+  } | null;
 };
 
 export type RelatedEntry = {

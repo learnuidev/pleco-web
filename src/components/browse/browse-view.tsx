@@ -45,8 +45,8 @@ type CharacterSort = "common" | "rare";
 type RadicalSort = "number" | "asc" | "desc";
 
 const AXES: Array<{ key: Axis; label: string }> = [
-  { key: "characters", label: "Characters" },
   { key: "radicals", label: "Radicals" },
+  { key: "characters", label: "Characters" },
 ];
 
 const CHARACTER_SORTS: Array<{ key: CharacterSort; icon: typeof Hash; label: string }> = [
@@ -182,6 +182,8 @@ function DistributionToggle({
 /**
  * Browse view: two inventories over the same corpus.
  *
+ * **Radicals** (the default) — the Kangxi inventory, every form browsable.
+ *
  * **Characters** — the frequency-ranked characters, filterable by stroke count,
  * ordered most- or least-common first, with a stroke-distribution chart whose
  * bars act as filters.
@@ -197,19 +199,19 @@ export function BrowseView() {
 
   const [axis, setAxis] = useState<Axis>(() => {
     const tab = params.get("tab");
-    return tab === "radicals" || tab === "characters" ? tab : "characters";
+    return tab === "radicals" || tab === "characters" ? tab : "radicals";
   });
   const [items, setItems] = useState<BrowseItem[]>([]);
   const [radicalForms, setRadicalForms] = useState<RadicalForm[]>([]);
   const [histogram, setHistogram] = useState<Record<number, number>>({});
   const [charStrokeFilter, setCharStrokeFilter] = useState<number | null>(() =>
-    params.get("tab") !== "radicals" ? strokeParam(params.get("stroke")) : null,
+    params.get("tab") === "characters" ? strokeParam(params.get("stroke")) : null,
   );
   const [charSort, setCharSort] = useState<CharacterSort>(() =>
     params.get("sort") === "rare" ? "rare" : "common",
   );
   const [radicalStrokeFilter, setRadicalStrokeFilter] = useState<number | null>(() =>
-    params.get("tab") === "radicals" ? strokeParam(params.get("stroke")) : null,
+    params.get("tab") === "characters" ? null : strokeParam(params.get("stroke")),
   );
   const [radicalSort, setRadicalSort] = useState<RadicalSort>(() => {
     const sort = params.get("sort");

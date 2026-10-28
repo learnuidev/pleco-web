@@ -17,8 +17,8 @@ type LearnSummary = {
 };
 
 type LearnUnlock = LearnSummary & {
-  radicals: string[];
-  learnedRadicals: string[];
+  components: string[];
+  learnedComponents: string[];
   missing: string[];
   percent: number;
 };
@@ -84,7 +84,7 @@ export function LearningView() {
         <h2 className="text-[14px] font-semibold">Nothing learned yet</h2>
         <p className="max-w-sm text-[12.5px] leading-relaxed text-muted-foreground text-pretty">
           Open a character or a radical and hit{" "}
-          <span className="font-medium text-foreground">Learn</span>. Every radical you learn
+          <span className="font-medium text-foreground">Learn</span>. Every component you learn
           unlocks the characters built on it — they show up here, fully or partly unlocked.
         </p>
         <Button
@@ -177,7 +177,7 @@ export function LearningView() {
               icon={Sparkles}
               title="Fully unlocked"
               count={payload.counts.full}
-              hint="every radical learned — the character is ready to meet"
+              hint="every component learned — the character is ready to meet"
               tone="primary"
             />
             {payload.full.length > 0 ? (
@@ -187,7 +187,7 @@ export function LearningView() {
                 ))}
               </div>
             ) : (
-              <EmptyNote>{loading ? "Checking your radicals…" : "Learn a character's radicals to unlock it here."}</EmptyNote>
+              <EmptyNote>{loading ? "Checking your components…" : "Learn a character's components to unlock it here."}</EmptyNote>
             )}
           </section>
 
@@ -196,7 +196,7 @@ export function LearningView() {
               icon={Unlock}
               title="Partly unlocked"
               count={payload.counts.partial}
-              hint="some radicals learned — finish them to unlock"
+              hint="some components learned — finish them to unlock"
             />
             {payload.partial.length > 0 ? (
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -206,7 +206,7 @@ export function LearningView() {
               </div>
             ) : (
               <EmptyNote>
-                {loading ? "Checking your radicals…" : "No half-finished characters yet."}
+                {loading ? "Checking your components…" : "No half-finished characters yet."}
               </EmptyNote>
             )}
           </section>
@@ -222,7 +222,7 @@ function UnlockRow({ unlock }: { unlock: LearnUnlock }) {
     <button
       type="button"
       onClick={() => openCharacter(unlock.glyph)}
-      title={`Radicals: ${unlock.radicals.join(" ")}`}
+      title={`Components: ${unlock.components.join(" ")}`}
       className="focus-halo flex items-center gap-2.5 rounded-xl bg-card px-2.5 py-1.5 text-left shadow-hairline ring-1 ring-black/5 transition-shadow hover:shadow-raised dark:ring-white/8"
     >
       <Glyph size="md" className="shrink-0">
@@ -256,7 +256,7 @@ function PartialCard({ unlock }: { unlock: LearnUnlock }) {
       <button
         type="button"
         onClick={() => openCharacter(unlock.glyph)}
-        title={`Radicals: ${unlock.radicals.join(" ")}`}
+        title={`Components: ${unlock.components.join(" ")}`}
         className="focus-halo flex w-full items-center gap-2.5 rounded-lg text-left"
       >
         <Glyph size="md" className="shrink-0">

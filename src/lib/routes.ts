@@ -77,7 +77,7 @@ export function syncEntryUrl(
 /** Query keys owned by the Browse tab. */
 export const BROWSE_PARAMS = ["tab", "view", "stroke", "sort"] as const;
 
-export type BrowseAxis = "characters" | "radicals";
+export type BrowseAxis = "characters" | "radicals" | "primitives";
 
 export type BrowseUrlState = {
   axis: BrowseAxis;
@@ -85,12 +85,12 @@ export type BrowseUrlState = {
   chart: boolean;
   /** Stroke filter for the active axis; null = no filter. */
   stroke: number | null;
-  /** Characters: most/least common. Radicals: Kangxi number or stroke order. */
-  sort: "common" | "rare" | "number" | "asc" | "desc";
+  /** Characters: most/least common. Radicals: Kangxi number or strokes. Primitives: usage or strokes. */
+  sort: "common" | "rare" | "number" | "usage" | "asc" | "desc";
 };
 
 export function isBrowseAxis(value: string | null): value is BrowseAxis {
-  return value === "characters" || value === "radicals";
+  return value === "characters" || value === "radicals" || value === "primitives";
 }
 
 /** `/browse?tab=strokes&view=chart&stroke=8&sort=asc` */
@@ -100,7 +100,9 @@ export function browseHref(state: BrowseUrlState): string {
   // The chart is the default view, so only the plain grid has to say so.
   if (!state.chart) params.set("view", "grid");
   if (state.stroke !== null) params.set("stroke", String(state.stroke));
-  if (state.sort !== "common" && state.sort !== "number") params.set("sort", state.sort);
+  if (state.sort !== "common" && state.sort !== "number" && state.sort !== "usage") {
+    params.set("sort", state.sort);
+  }
   return `/browse?${params.toString()}`;
 }
 

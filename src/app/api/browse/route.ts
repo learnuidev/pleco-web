@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getFrequencyTable, getRadicals } from "@/lib/dictionary/frequency";
 import { componentCharacters } from "@/lib/hanzi";
 import strokeCounts from "@/lib/dictionary/stroke-counts.generated.json";
+import primitiveData from "@/lib/dictionary/primitives.generated.json";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +20,15 @@ export type BrowseItem = {
 };
 
 export type CharacterSort = "common" | "rare";
+
+export type PrimitiveForm = {
+  key: string;
+  glyph: string;
+  meaning: string;
+  pinyin: string;
+  strokes: number | null;
+  characterCount: number;
+};
 
 export type RadicalForm = {
   key: string;
@@ -80,6 +90,24 @@ export async function GET(request: Request) {
       });
     }
     return NextResponse.json({ forms }, { headers: { "Cache-Control": "no-store" } });
+  }
+
+  if (mode === "primitives") {
+    const primitives: PrimitiveForm[] = (primitiveData as Array<{
+      glyph: string;
+      pinyin: string;
+      meaning: string;
+      strokes: number | null;
+      characterCount: number;
+    }>).map((primitive) => ({
+      key: `primitive:${primitive.glyph}`,
+      glyph: primitive.glyph,
+      meaning: primitive.meaning,
+      pinyin: primitive.pinyin,
+      strokes: primitive.strokes,
+      characterCount: primitive.characterCount,
+    }));
+    return NextResponse.json({ primitives }, { headers: { "Cache-Control": "no-store" } });
   }
 
   if (mode === "component") {

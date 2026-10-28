@@ -15,7 +15,7 @@ function DistributionTooltip({
 }: {
   active?: boolean;
   payload?: TooltipPayload;
-  unit: "radical" | "character";
+  unit: "radical" | "character" | "component";
 }) {
   const bucket = payload?.[0]?.payload;
   if (!active || !bucket) return null;
@@ -50,7 +50,7 @@ export function StrokeDistribution({
   activeStroke: number | null;
   onSelect: (strokes: number | null) => void;
   /** What is being counted, singular — used in the totals and the tooltip. */
-  unit: "radical" | "character";
+  unit: "radical" | "character" | "component";
   title?: string;
 }) {
   const gradientId = useId().replace(/[^a-zA-Z0-9]/g, "");

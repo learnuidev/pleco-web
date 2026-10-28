@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { buildCharacterInfo } from "@/lib/dictionary/character";
-import { getFrequencyTable, findRadicalMatch } from "@/lib/dictionary/frequency";
+import { getFrequencyTable, getRadicals } from "@/lib/dictionary/frequency";
+import { decompose, radicalMeaning } from "@/lib/hanzi";
 import { componentCharacters } from "@/lib/hanzi";
 
 export const runtime = "nodejs";
@@ -19,13 +19,13 @@ type CharacterSummary = {
 };
 
 type UnlockCharacter = CharacterSummary & {
-  /** The radicals this character is built from. */
-  radicals: string[];
+  /** Every building block of the character: radicals and primitives. */
+  components: string[];
   /** Which of those have been learned. */
-  learnedRadicals: string[];
-  /** The radicals still missing before it is fully unlocked. */
+  learnedComponents: string[];
+  /** The components still missing before it is fully unlocked. */
   missing: string[];
-  /** 0..100 */
+  /** 0..100, over all of the character's components. */
   percent: number;
 };
 
@@ -63,47 +63,73 @@ export async function GET(request: Request) {
   const learnedSet = new Set(learned);
 
   // Characters built on the learned glyphs. A learned radical reaches its whole
-  // family; a learned word contributes nothing here.
-  const candidates = new Set<string>();
+  // family — 丶 covers the 41 characters that use any dot radical (丶 冫 ⺀) —
+  // and each candidate remembers which learned glyphs put it there, because the
+  // reverse index can know about a stroke the primitive decomposition folds into
+  // a blob (丶 never shows up in 之's component list, but 之 is built on it).
+  const family = new Map<string, Set<string>>();
   for (const glyph of learned) {
     for (const character of componentCharacters(glyph)) {
       if (character === glyph) continue;
-      candidates.add(character);
-      if (candidates.size >= MAX_CANDIDATES) break;
+      const uses = family.get(character) ?? new Set<string>();
+      uses.add(glyph);
+      family.set(character, uses);
+      if (family.size >= MAX_CANDIDATES) break;
     }
-    if (candidates.size >= MAX_CANDIDATES) break;
+    if (family.size >= MAX_CANDIDATES) break;
   }
+
+  /** What a component counts as learned-by: its radical meaning, else its glyph. */
+  const taughtKeys = new Set(learned.map(componentKey));
 
   const full: UnlockCharacter[] = [];
   const partial: UnlockCharacter[] = [];
 
-  for (const character of candidates) {
-    const info = buildCharacterInfo(character);
-    const radicals = Array.from(
-      new Set(
-        info.components
-          .filter((component) => component.isRadical)
-          .map((component) => component.glyph)
-          .concat(
-            // A character that is itself a radical is built on that radical.
-            findRadicalMatch([character]) ? [character] : [],
-          ),
-      ),
-    );
-    if (radicals.length === 0) continue;
+  for (const character of family.keys()) {
+    const decomposition = decompose(character);
+    // Every level HanziJS decomposes at — once, radical, graphical, primitive —
+    // merged into one component set: the radical pass gives the meaningful
+    // radicals (未 = 木 + 一, 为 = 力 + ⺀), the graphical pass surfaces pieces it
+    // folds together, and the once/primitive passes add the first split and the
+    // final building blocks. Bare stroke symbols are skipped and same-meaning
+    // radical forms (丶 / ⺀) collapse into one component.
+    const components = new Map<string, string>();
+    const add = (glyph: string | undefined) => {
+      if (!glyph || glyph === "No glyph available" || glyph === character) return;
+      if (!isLearnable(glyph)) return;
+      const key = componentKey(glyph);
+      if (!components.has(key)) components.set(key, canonicalGlyph(key) ?? glyph);
+    };
+    for (const level of [
+      decomposition?.components1, // once
+      decomposition?.components2, // radical
+      decomposition?.components3, // graphical
+      decomposition?.components4, // primitive
+    ]) {
+      for (const glyph of level ?? []) add(glyph);
+    }
+    // Reverse-index knowledge: a learned glyph the decomposition folds away.
+    for (const glyph of family.get(character) ?? []) add(glyph);
 
-    const learnedRadicals = radicals.filter((radical) => learnedSet.has(radical));
-    if (learnedRadicals.length === 0) continue;
+    if (components.size === 0) continue;
+
+    const learnedComponents: string[] = [];
+    const missing: string[] = [];
+    for (const [key, glyph] of components) {
+      if (taughtKeys.has(key)) learnedComponents.push(glyph);
+      else missing.push(glyph);
+    }
+    if (learnedComponents.length === 0) continue;
 
     const unlock: UnlockCharacter = {
       ...summary(character),
-      radicals,
-      learnedRadicals,
-      missing: radicals.filter((radical) => !learnedSet.has(radical)),
-      percent: Math.round((learnedRadicals.length / radicals.length) * 100),
+      components: [...components.values()],
+      learnedComponents,
+      missing,
+      percent: Math.round((learnedComponents.length / components.size) * 100),
     };
 
-    if (learnedRadicals.length === radicals.length) full.push(unlock);
+    if (missing.length === 0) full.push(unlock);
     else partial.push(unlock);
   }
 
@@ -126,4 +152,36 @@ export async function GET(request: Request) {
     },
     { headers: { "Cache-Control": "no-store" } },
   );
+}
+
+/** CJK stroke symbols (㇇ ㇏ ㇒ …) are not learnable components. */
+function isLearnable(glyph: string): boolean {
+  const cp = glyph.codePointAt(0) ?? 0;
+  return cp < 0x31c0 || cp > 0x31ef;
+}
+
+/**
+ * Components are compared by meaning for radicals, so learning 丶 covers ⺀ and
+ * one form of a radical covers its other forms; anything else compares by glyph.
+ */
+function componentKey(glyph: string): string {
+  const meaning = radicalMeaning(glyph);
+  return meaning && meaning !== "N/A" ? `radical:${meaning.toLowerCase()}` : glyph;
+}
+
+/** The canonical glyph for a component key, so ⺀ shows and links as 丶. */
+let canonicalByKey: Map<string, string> | null = null;
+
+function canonicalGlyph(key: string): string | null {
+  if (!canonicalByKey) {
+    canonicalByKey = new Map();
+    for (const radical of getRadicals()) {
+      const glyphs = [radical.glyph, ...radical.variants.map((variant) => variant.glyph)];
+      for (const glyph of glyphs) {
+        const componentKeyValue = componentKey(glyph);
+        if (!canonicalByKey.has(componentKeyValue)) canonicalByKey.set(componentKeyValue, radical.glyph);
+      }
+    }
+  }
+  return canonicalByKey.get(key) ?? null;
 }

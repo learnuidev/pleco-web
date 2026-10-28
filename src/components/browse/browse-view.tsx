@@ -15,7 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { StrokeDistribution } from "@/components/browse/stroke-distribution";
 import { Glyph } from "@/components/glyph";
-import { characterHref, syncBrowseUrl, type BrowseAxis } from "@/lib/routes";
+import { characterHref, isBrowseAxis, syncBrowseUrl, type BrowseAxis } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 type Axis = BrowseAxis;
@@ -26,6 +26,16 @@ type BrowseItem = {
   meaning: string;
   rank: number | null;
   strokes: number | null;
+};
+
+/** A Han-character primitive: a building block HanziJS decomposition stops at. */
+type PrimitiveForm = {
+  key: string;
+  glyph: string;
+  meaning: string;
+  pinyin: string;
+  strokes: number | null;
+  characterCount: number;
 };
 
 /** One browsable form of a radical: the canonical glyph or one of its variants. */
@@ -43,9 +53,11 @@ type RadicalForm = {
 
 type CharacterSort = "common" | "rare";
 type RadicalSort = "number" | "asc" | "desc";
+type PrimitiveSort = "usage" | "asc" | "desc";
 
 const AXES: Array<{ key: Axis; label: string }> = [
   { key: "radicals", label: "Radicals" },
+  { key: "primitives", label: "Primitives" },
   { key: "characters", label: "Characters" },
 ];
 
@@ -56,6 +68,12 @@ const CHARACTER_SORTS: Array<{ key: CharacterSort; icon: typeof Hash; label: str
 
 const RADICAL_SORTS: Array<{ key: RadicalSort; icon: typeof Hash; label: string; title: string }> = [
   { key: "number", icon: Hash, label: "Kangxi number", title: "Kangxi radical number" },
+  { key: "asc", icon: ArrowUpNarrowWide, label: "Fewest strokes", title: "Sort by strokes, ascending" },
+  { key: "desc", icon: ArrowDownWideNarrow, label: "Most strokes", title: "Sort by strokes, descending" },
+];
+
+const PRIMITIVE_SORTS: Array<{ key: PrimitiveSort; icon: typeof Hash; label: string; title: string }> = [
+  { key: "usage", icon: Hash, label: "Most used", title: "Sort by how many characters use it" },
   { key: "asc", icon: ArrowUpNarrowWide, label: "Fewest strokes", title: "Sort by strokes, ascending" },
   { key: "desc", icon: ArrowDownWideNarrow, label: "Most strokes", title: "Sort by strokes, descending" },
 ];
@@ -199,10 +217,11 @@ export function BrowseView() {
 
   const [axis, setAxis] = useState<Axis>(() => {
     const tab = params.get("tab");
-    return tab === "radicals" || tab === "characters" ? tab : "radicals";
+    return isBrowseAxis(tab) ? tab : "radicals";
   });
   const [items, setItems] = useState<BrowseItem[]>([]);
   const [radicalForms, setRadicalForms] = useState<RadicalForm[]>([]);
+  const [primitives, setPrimitives] = useState<PrimitiveForm[]>([]);
   const [histogram, setHistogram] = useState<Record<number, number>>({});
   const [charStrokeFilter, setCharStrokeFilter] = useState<number | null>(() =>
     params.get("tab") === "characters" ? strokeParam(params.get("stroke")) : null,
@@ -211,8 +230,17 @@ export function BrowseView() {
     params.get("sort") === "rare" ? "rare" : "common",
   );
   const [radicalStrokeFilter, setRadicalStrokeFilter] = useState<number | null>(() =>
-    params.get("tab") === "characters" ? null : strokeParam(params.get("stroke")),
+    params.get("tab") === "characters" || params.get("tab") === "primitives"
+      ? null
+      : strokeParam(params.get("stroke")),
   );
+  const [primitiveStrokeFilter, setPrimitiveStrokeFilter] = useState<number | null>(() =>
+    params.get("tab") === "primitives" ? strokeParam(params.get("stroke")) : null,
+  );
+  const [primitiveSort, setPrimitiveSort] = useState<PrimitiveSort>(() => {
+    const sort = params.get("sort");
+    return sort === "asc" || sort === "desc" ? sort : "usage";
+  });
   const [radicalSort, setRadicalSort] = useState<RadicalSort>(() => {
     const sort = params.get("sort");
     return sort === "asc" || sort === "desc" ? sort : "number";
@@ -229,6 +257,10 @@ export function BrowseView() {
           const response = await fetch("/api/browse?mode=radicals");
           const data = (await response.json()) as { forms: RadicalForm[] };
           setRadicalForms(data.forms);
+        } else if (nextAxis === "primitives") {
+          const response = await fetch("/api/browse?mode=primitives");
+          const data = (await response.json()) as { primitives: PrimitiveForm[] };
+          setPrimitives(data.primitives);
         } else {
           const search = new URLSearchParams({ mode: "characters", sort });
           if (stroke !== null) search.set("stroke", String(stroke));
@@ -258,10 +290,24 @@ export function BrowseView() {
     syncBrowseUrl({
       axis,
       chart: showChart,
-      stroke: axis === "radicals" ? radicalStrokeFilter : charStrokeFilter,
-      sort: axis === "radicals" ? radicalSort : charSort,
+      stroke:
+        axis === "radicals"
+          ? radicalStrokeFilter
+          : axis === "primitives"
+            ? primitiveStrokeFilter
+            : charStrokeFilter,
+      sort: axis === "radicals" ? radicalSort : axis === "primitives" ? primitiveSort : charSort,
     });
-  }, [axis, showChart, charStrokeFilter, charSort, radicalStrokeFilter, radicalSort]);
+  }, [
+    axis,
+    showChart,
+    charStrokeFilter,
+    charSort,
+    radicalStrokeFilter,
+    radicalSort,
+    primitiveStrokeFilter,
+    primitiveSort,
+  ]);
 
   const strokeKeys = useMemo(
     () =>
@@ -285,6 +331,47 @@ export function BrowseView() {
     () => Object.keys(radicalStrokeHistogram).map(Number).sort((a, b) => a - b),
     [radicalStrokeHistogram],
   );
+
+  const primitiveStrokeHistogram = useMemo<Record<number, number>>(() => {
+    const counts: Record<number, number> = {};
+    for (const primitive of primitives) {
+      if (!primitive.strokes) continue;
+      counts[primitive.strokes] = (counts[primitive.strokes] ?? 0) + 1;
+    }
+    return counts;
+  }, [primitives]);
+
+  const primitiveStrokeKeys = useMemo(
+    () => Object.keys(primitiveStrokeHistogram).map(Number).sort((a, b) => a - b),
+    [primitiveStrokeHistogram],
+  );
+
+  const primitiveChartData = useMemo(
+    () =>
+      primitiveStrokeKeys.map((strokes) => ({
+        strokes,
+        count: primitiveStrokeHistogram[strokes] ?? 0,
+      })),
+    [primitiveStrokeKeys, primitiveStrokeHistogram],
+  );
+
+  /** Primitives, filtered by stroke count and ordered by usage or strokes. */
+  const visiblePrimitives = useMemo(() => {
+    const filtered =
+      primitiveStrokeFilter === null
+        ? primitives
+        : primitives.filter((primitive) => primitive.strokes === primitiveStrokeFilter);
+    const sorted = [...filtered];
+    if (primitiveSort === "usage") {
+      sorted.sort((a, b) => b.characterCount - a.characterCount || (a.strokes ?? 99) - (b.strokes ?? 99));
+    } else {
+      sorted.sort((a, b) => {
+        const diff = (a.strokes ?? 99) - (b.strokes ?? 99);
+        return primitiveSort === "desc" ? -diff : diff;
+      });
+    }
+    return sorted;
+  }, [primitives, primitiveStrokeFilter, primitiveSort]);
 
   const characterChartData = useMemo(
     () => strokeKeys.map((strokes) => ({ strokes, count: histogram[strokes] ?? 0 })),
@@ -379,6 +466,24 @@ export function BrowseView() {
           </>
         ) : null}
 
+        {axis === "primitives" ? (
+          <>
+            <StrokeFilterRow
+              keys={primitiveStrokeKeys}
+              active={primitiveStrokeFilter}
+              onSelect={setPrimitiveStrokeFilter}
+            />
+            <div className="ml-auto flex items-center gap-1.5">
+              <SortPill
+                options={PRIMITIVE_SORTS}
+                active={primitiveSort}
+                onSelect={setPrimitiveSort}
+              />
+              <DistributionToggle open={showChart} onToggle={() => setShowChart((open) => !open)} />
+            </div>
+          </>
+        ) : null}
+
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
@@ -390,6 +495,14 @@ export function BrowseView() {
                 activeStroke={radicalStrokeFilter}
                 onSelect={setRadicalStrokeFilter}
                 unit="radical"
+              />
+            ) : axis === "primitives" ? (
+              <StrokeDistribution
+                data={primitiveChartData}
+                activeStroke={primitiveStrokeFilter}
+                onSelect={setPrimitiveStrokeFilter}
+                unit="component"
+                title="Primitives by stroke count"
               />
             ) : (
               <StrokeDistribution
@@ -403,7 +516,49 @@ export function BrowseView() {
           </div>
         ) : null}
 
-        {axis === "radicals" ? (
+        {axis === "primitives" ? (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(122px,1fr))] gap-2">
+            {visiblePrimitives.map((primitive, index) => (
+              <motion.button
+                key={primitive.key}
+                type="button"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(index, 36) * 0.005 }}
+                onClick={() => router.push(characterHref(primitive.glyph))}
+                title={`${primitive.glyph}${primitive.pinyin ? ` · ${primitive.pinyin}` : ""} — ${
+                  primitive.meaning || "primitive"
+                } · used in ${primitive.characterCount} characters`}
+                className="focus-halo group relative flex flex-col items-center gap-1 rounded-xl bg-card px-2 pb-2 pt-2.5 shadow-hairline ring-1 ring-black/5 transition-all hover:shadow-raised hover:ring-primary/25 dark:ring-white/8"
+              >
+                <ArrowUpRight className="absolute right-1.5 top-1.5 size-3 text-primary/0 transition-colors group-hover:text-primary/70" />
+                <Glyph size="lg" className="text-foreground">
+                  {primitive.glyph}
+                </Glyph>
+                <span className="truncate text-[11.5px] font-medium text-primary">
+                  {primitive.pinyin || "—"}
+                </span>
+                <span className="line-clamp-1 text-center text-[10.5px] text-muted-foreground">
+                  {primitive.meaning || "—"}
+                </span>
+                <span className="tabular mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground/80">
+                  {primitive.strokes ? (
+                    <span className="inline-flex items-center gap-0.5">
+                      <Hash className="size-2.5" />
+                      {primitive.strokes}
+                    </span>
+                  ) : null}
+                  <span>in {primitive.characterCount}</span>
+                </span>
+              </motion.button>
+            ))}
+            {visiblePrimitives.length === 0 && !loading ? (
+              <p className="col-span-full py-8 text-center text-[12.5px] text-muted-foreground">
+                No primitives for this filter.
+              </p>
+            ) : null}
+          </div>
+        ) : axis === "radicals" ? (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(116px,1fr))] gap-2">
             {visibleRadicals.map((form, index) => (
               <motion.button

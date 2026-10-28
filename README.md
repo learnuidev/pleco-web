@@ -78,6 +78,10 @@ Two inventories, one toolbar language (Radicals opens first):
   飠 食 …), each with its own stroke count, meaning, pinyin and usage, so stroke
   filters and the distribution chart count variants independently. Sortable by
   Kangxi number or by stroke count either way.
+- **Primitives** — the building blocks HanziJS decomposition stops at that are not
+  radicals (习, 中, 丁, 甲, 廿, 丰, 乂 …), each with pinyin, stroke count and how
+  many characters use it; filterable by strokes, sortable by usage or stroke
+  count, with the same distribution chart.
 - **Characters** — the frequency-ranked corpus, filterable by stroke count,
   ordered most-common or least-common first, with #N, pinyin and gloss on each
   tile.
@@ -89,11 +93,11 @@ Two inventories, one toolbar language (Radicals opens first):
 
 **Learning**
 
-- Mark a character or radical as learned from the reader.
-- `/learning` lists everything learned, plus the characters those radicals
-  **fully unlock** (every radical learned) and **partly unlock** (some learned —
-  with the percentage and the radicals still missing, each linking straight to
-  the radical you need to learn).
+- Mark any character, radical or primitive as learned from the reader.
+- `/learning` lists everything learned, plus the characters those components
+  **fully unlock** (every radical *and* primitive learned) and **partly unlock**
+  (some learned — with the percentage over all components and the missing ones,
+  each linking straight to the component you need to learn).
 
 **Saved words**
 

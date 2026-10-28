@@ -340,6 +340,16 @@
     font-feature-settings: "kern" 1;
   }
 
+  /*
+   * Recharts focuses its plot layers when you click a bar. Because the base layer
+   * sets `outline-color` globally, that browser focus ring rendered as a light
+   * blue border around the whole chart. Pointer focus paints nothing; keyboard
+   * focus (:focus-visible) keeps its ring for accessibility.
+   */
+  .recharts-wrapper :focus:not(:focus-visible) {
+    outline: none;
+  }
+
   /* Grid paper used behind stroke practice, like a 米字格 exercise book. */
   .tiange-grid {
     background-image:

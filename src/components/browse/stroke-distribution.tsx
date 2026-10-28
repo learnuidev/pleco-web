@@ -3,23 +3,25 @@
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { useId } from "react";
 
-export type RadicalStrokeBucket = { strokes: number; count: number };
+export type StrokeBucket = { strokes: number; count: number };
 
-type TooltipPayload = ReadonlyArray<{ payload?: RadicalStrokeBucket }>;
+type TooltipPayload = ReadonlyArray<{ payload?: StrokeBucket }>;
 
 function DistributionTooltip({
   active,
   payload,
+  unit,
 }: {
   active?: boolean;
   payload?: TooltipPayload;
+  unit: "radical" | "character";
 }) {
   const bucket = payload?.[0]?.payload;
   if (!active || !bucket) return null;
   return (
     <div className="material-strong rounded-xl px-2.5 py-1.5 text-[11px] shadow-float ring-1 ring-black/5 dark:ring-white/10">
       <p className="font-semibold text-foreground">
-        {bucket.count} {bucket.count === 1 ? "radical" : "radicals"}
+        {bucket.count} {bucket.count === 1 ? unit : `${unit}s`}
       </p>
       <p className="text-muted-foreground">
         {bucket.strokes} {bucket.strokes === 1 ? "stroke" : "strokes"}
@@ -29,18 +31,26 @@ function DistributionTooltip({
 }
 
 /**
- * Sexy little bar chart of the radical inventory: how many radicals need one
- * stroke, two strokes, … The bars are gradient-filled, they animate in, and
- * clicking one filters the grid below to that stroke count.
+ * The stroke-count distribution for whichever inventory is on screen: the Kangxi
+ * radicals, or the characters in the mirrored stroke data.
+ *
+ * Gradient bars, animated entrance, a glassy tooltip, and bars that double as
+ * filters — clicking one narrows the grid below to that stroke count (a second
+ * click clears it).
  */
-export function RadicalDistribution({
+export function StrokeDistribution({
   data,
   activeStroke,
   onSelect,
+  unit,
+  title = "Stroke distribution",
 }: {
-  data: RadicalStrokeBucket[];
+  data: StrokeBucket[];
   activeStroke: number | null;
   onSelect: (strokes: number | null) => void;
+  /** What is being counted, singular — used in the totals and the tooltip. */
+  unit: "radical" | "character";
+  title?: string;
 }) {
   const gradientId = useId().replace(/[^a-zA-Z0-9]/g, "");
   const total = data.reduce((sum, bucket) => sum + bucket.count, 0);
@@ -49,9 +59,9 @@ export function RadicalDistribution({
     <div className="material hairline-ring overflow-hidden rounded-2xl">
       <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 pb-1 pt-3">
         <div>
-          <p className="text-[12px] font-semibold tracking-tight">Stroke distribution</p>
+          <p className="text-[12px] font-semibold tracking-tight">{title}</p>
           <p className="tabular text-[10.5px] text-muted-foreground">
-            {total} radicals · {data.length} stroke counts
+            {total} {total === 1 ? unit : `${unit}s`} · {data.length} stroke counts
           </p>
         </div>
         <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-[10px] text-muted-foreground">
@@ -63,11 +73,11 @@ export function RadicalDistribution({
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 12, bottom: 0, left: 12 }}>
             <defs>
-              <linearGradient id={`radical-bar-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`stroke-bar-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.95} />
                 <stop offset="100%" stopColor="var(--chart-5)" stopOpacity={0.45} />
               </linearGradient>
-              <linearGradient id={`radical-bar-hot-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`stroke-bar-hot-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--brand)" stopOpacity={1} />
                 <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0.8} />
               </linearGradient>
@@ -82,7 +92,7 @@ export function RadicalDistribution({
             />
             <Tooltip
               cursor={{ fill: "var(--foreground)", fillOpacity: 0.04 }}
-              content={<DistributionTooltip />}
+              content={<DistributionTooltip unit={unit} />}
             />
             <Bar dataKey="count" radius={[5, 5, 0, 0]} maxBarSize={28} animationDuration={700}>
               {data.map((bucket) => {
@@ -91,7 +101,9 @@ export function RadicalDistribution({
                 return (
                   <Cell
                     key={bucket.strokes}
-                    fill={isActive ? `url(#radical-bar-hot-${gradientId})` : `url(#radical-bar-${gradientId})`}
+                    fill={
+                      isActive ? `url(#stroke-bar-hot-${gradientId})` : `url(#stroke-bar-${gradientId})`
+                    }
                     fillOpacity={dimmed ? 0.35 : 1}
                     cursor="pointer"
                     onClick={() => onSelect(isActive ? null : bucket.strokes)}

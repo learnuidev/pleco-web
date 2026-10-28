@@ -22,7 +22,7 @@ import { useWorkbench } from "@/components/workbench/state";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDictionarySearch } from "@/hooks/use-dictionary-search";
 import type { ApiStatusResponse } from "@/lib/api-types";
-import { syncDictionaryUrl } from "@/lib/routes";
+import { clearBrowseUrl, syncDictionaryUrl } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 /**
@@ -86,6 +86,11 @@ export function Workbench() {
     },
     [dispatch, hits],
   );
+
+  /** Leaving the Browse tab drops its `?tab=…&view=…` parameters. */
+  useEffect(() => {
+    if (state.view !== "browse") clearBrowseUrl();
+  }, [state.view]);
 
   /** ←/→ step through results once one is selected; ⌘← / ⌘→ walk history. */
   useEffect(() => {

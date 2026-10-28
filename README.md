@@ -108,6 +108,14 @@ process); every search after that is single-digit milliseconds.
 | `/` | Redirects to `/dictionary` |
 | `/dictionary` | The workbench, nothing selected |
 | `/dictionary/:character` | The same workbench, booted into that entry |
+| `/dictionary?tab=strokes&view=chart&stroke=8&sort=asc` | The Browse tab, with its axis, chart, filter and sort in the URL |
+
+Browse keeps its whole state in the query string — `tab` (`frequency`,
+`strokes`, `radicals`), `view` (`chart` when the stroke-distribution panel is
+open), `stroke` (the active stroke filter) and `sort` (`asc` / `desc`, radicals
+only) — so a chart or a filtered grid is a link you can bookmark or paste. The
+strokes and radicals axes both chart their stroke distribution, and the bars act
+as filters.
 
 The dictionary is one layout — sidebar, search, result list and reader — and the
 address bar simply follows what the reader shows. Selecting a result, a Recent

@@ -98,12 +98,21 @@ export function getRadicalMeanings(): Record<string, string> {
   return radicalMeaningCache;
 }
 
+/**
+ * The 214 Kangxi radicals.
+ *
+ * HanziJS ships the canonical 214 followed by ~150 layout variants and a few
+ * duplicates (⺲ appears twice, ⻳ is just 龜 again); the inventory we browse is
+ * exactly the classic 214, so the list is truncated at the canonical block.
+ */
+const KANGXI_RADICAL_COUNT = 214;
+
 export function getRadicals(): Radical[] {
   if (radicalCache) return radicalCache;
   const list = parseExportedJson<string[]>("radicalList.js", "[", "]");
   const meanings = getRadicalMeanings();
   const strokeCounts = radicalStrokes as Record<string, number>;
-  radicalCache = list.map((glyph, index) => ({
+  radicalCache = list.slice(0, KANGXI_RADICAL_COUNT).map((glyph, index) => ({
     number: index + 1,
     glyph,
     meaning: meanings[glyph] ?? "",

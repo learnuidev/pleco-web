@@ -76,8 +76,9 @@ Two inventories, one toolbar language:
 - **Characters** — the frequency-ranked corpus, filterable by stroke count,
   ordered most-common or least-common first, with #N, pinyin and gloss on each
   tile.
-- **Radicals** — the full Kangxi inventory with meaning, number and usage count,
-  sortable by Kangxi number or by stroke count either way.
+- **Radicals** — the classic 214-radical Kangxi inventory (simplified form where one
+  exists, with traditional/variant forms shown alongside), each with meaning,
+  pinyin and usage count, sortable by Kangxi number or by stroke count either way.
 - Both axes open a gradient-filled stroke-distribution chart (recharts) whose
   bars double as filters, and both keep their state in the URL
   (`?tab=characters&view=grid&stroke=7&sort=rare`, and `view=chart` is the default).
@@ -148,7 +149,6 @@ to its `/dictionary/:character` URL.
 npm run build && npm start   # production build on :4310
 npm run typecheck            # tsc --noEmit
 npm run fetch:strokes        # mirror more stroke data (see below)
-npm run gen:radical-strokes  # rebuild radical stroke counts (needs network)
 ```
 
 ### Stroke data

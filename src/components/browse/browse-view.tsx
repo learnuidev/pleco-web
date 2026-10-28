@@ -32,7 +32,9 @@ type Radical = {
   number: number;
   glyph: string;
   meaning: string;
+  pinyin: string;
   strokes: number | null;
+  variants: string[];
   characterCount: number | null;
 };
 
@@ -398,13 +400,21 @@ export function BrowseView() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(index, 40) * 0.006 }}
                 onClick={() => router.push(characterHref(radical.glyph))}
+                title={`${radical.glyph} ${radical.pinyin}${radical.variants.length ? ` · ${radical.variants.join(" ")}` : ""}`}
                 className="focus-halo group relative flex items-center gap-2.5 rounded-xl bg-card px-2.5 py-2 text-left shadow-hairline ring-1 ring-black/5 transition-all hover:shadow-raised hover:ring-primary/25 dark:ring-white/8"
               >
                 <Glyph size="md" className="shrink-0">
                   {radical.glyph}
                 </Glyph>
                 <span className="min-w-0">
-                  <span className="block truncate text-[11.5px] font-medium">{radical.meaning}</span>
+                  <span className="flex items-baseline gap-1.5">
+                    <span className="block truncate text-[11.5px] font-medium">
+                      {radical.meaning}
+                    </span>
+                    <span className="shrink-0 text-[10px] text-primary/80">
+                      {radical.pinyin.split(",")[0]}
+                    </span>
+                  </span>
                   <span className="tabular flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
                     {radical.strokes ? (
                       <span className="inline-flex items-center gap-0.5">
@@ -413,7 +423,11 @@ export function BrowseView() {
                       </span>
                     ) : null}
                     <span>#{radical.number}</span>
-                    {radical.characterCount ? <span>· {radical.characterCount}</span> : null}
+                    {radical.variants.length > 0 ? (
+                      <span className="glyph truncate text-[12px] text-muted-foreground/70">
+                        {radical.variants.join(" ")}
+                      </span>
+                    ) : null}
                   </span>
                 </span>
                 <ArrowUpRight className="absolute right-1.5 top-1.5 size-3 text-primary/0 transition-colors group-hover:text-primary/70" />

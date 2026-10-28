@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 
 import { hanziDataFile } from "../hanzi-paths";
-import radicalStrokes from "./radical-strokes.generated.json";
+import kangxiRadicals from "./kangxi-radicals.json";
 
 function readRaw(file: string): string {
   return readFileSync(hanziDataFile(file), "utf8");
@@ -79,9 +79,16 @@ export type Radical = {
   /** Position in the Kangxi radical list (1-based). */
   number: number;
   glyph: string;
+  /** English gloss of the radical. */
   meaning: string;
-  /** Classic Kangxi stroke count (variants follow their base radical). */
+  pinyin: string;
+  /**
+   * Stroke count of the radical in the form shown (simplified where one exists),
+   * which is what that table counts.
+   */
   strokes: number | null;
+  /** Other forms of the same radical (traditional or layout variants). */
+  variants: string[];
 };
 
 let radicalCache: Radical[] | null = null;
@@ -99,37 +106,46 @@ export function getRadicalMeanings(): Record<string, string> {
 }
 
 /**
- * The 214 Kangxi radicals.
+ * The 214 Kangxi radicals, as the classic inventory table defines them: the
+ * simplified form where one exists (户 not 戶, 纟 not 糸, 犭 not 犬), its English
+ * name, its pinyin, the stroke count of that form, and the traditional / variant
+ * forms.
  *
- * HanziJS ships the canonical 214 followed by ~150 layout variants and a few
- * duplicates (⺲ appears twice, ⻳ is just 龜 again); the inventory we browse is
- * exactly the classic 214, so the list is truncated at the canonical block.
+ * This is a static table on purpose: HanziJS' `radicalList.js` mixes the classic
+ * 214 with ~150 layout variants and duplicates, which is not the inventory a
+ * radical browser should show.
  */
-const KANGXI_RADICAL_COUNT = 214;
-
 export function getRadicals(): Radical[] {
   if (radicalCache) return radicalCache;
-  const list = parseExportedJson<string[]>("radicalList.js", "[", "]");
-  const meanings = getRadicalMeanings();
-  const strokeCounts = radicalStrokes as Record<string, number>;
-  radicalCache = list.slice(0, KANGXI_RADICAL_COUNT).map((glyph, index) => ({
-    number: index + 1,
-    glyph,
-    meaning: meanings[glyph] ?? "",
-    strokes: strokeCounts[glyph] ?? null,
-  }));
+  radicalCache = kangxiRadicals as Radical[];
   return radicalCache;
 }
 
 export function getRadicalMeaning(glyph: string): string {
+  const radical = findRadicalMatch([glyph]);
+  if (radical) return radical.meaning;
   return getRadicalMeanings()[glyph] ?? "";
 }
 
-/** Look up a Kangxi radical record for any component glyph that is a radical. */
+/**
+ * Look up a Kangxi radical record for any component glyph that is a radical —
+ * the canonical form or one of its variants (氵 → 水, 忄 → 心, 讠 → 言).
+ */
+let radicalIndex: Map<string, Radical> | null = null;
+
 export function findRadicalMatch(candidates: string[]): Radical | null {
-  const byGlyph = new Map(getRadicals().map((r) => [r.glyph, r]));
+  if (!radicalIndex) {
+    const index = new Map<string, Radical>();
+    for (const radical of getRadicals()) {
+      index.set(radical.glyph, radical);
+      for (const variant of radical.variants) {
+        if (!index.has(variant)) index.set(variant, radical);
+      }
+    }
+    radicalIndex = index;
+  }
   for (const candidate of candidates) {
-    const hit = byGlyph.get(candidate);
+    const hit = radicalIndex.get(candidate);
     if (hit) return hit;
   }
   return null;

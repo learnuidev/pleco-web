@@ -9,8 +9,7 @@
     "start": "next start --port 4310",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "fetch:strokes": "node scripts/fetch-stroke-data.mjs",
-    "gen:radical-strokes": "node scripts/gen-radical-strokes.mjs"
+    "fetch:strokes": "node scripts/fetch-stroke-data.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

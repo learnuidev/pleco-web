@@ -211,7 +211,8 @@ export function BrowseView() {
     const sort = params.get("sort");
     return sort === "asc" || sort === "desc" ? sort : "number";
   });
-  const [showChart, setShowChart] = useState<boolean>(() => params.get("view") === "chart");
+  // The distribution chart is the default view; `?view=grid` turns it off.
+  const [showChart, setShowChart] = useState<boolean>(() => params.get("view") !== "grid");
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(

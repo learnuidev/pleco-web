@@ -81,7 +81,7 @@ export type BrowseAxis = "characters" | "radicals";
 
 export type BrowseUrlState = {
   axis: BrowseAxis;
-  /** Chart open (the stroke-distribution panel) rather than the plain grid. */
+  /** Chart open (the stroke-distribution panel); it is on by default. */
   chart: boolean;
   /** Stroke filter for the active axis; null = no filter. */
   stroke: number | null;
@@ -97,7 +97,8 @@ export function isBrowseAxis(value: string | null): value is BrowseAxis {
 export function browseHref(state: BrowseUrlState): string {
   const params = new URLSearchParams();
   params.set("tab", state.axis);
-  if (state.chart) params.set("view", "chart");
+  // The chart is the default view, so only the plain grid has to say so.
+  if (!state.chart) params.set("view", "grid");
   if (state.stroke !== null) params.set("stroke", String(state.stroke));
   if (state.sort !== "common" && state.sort !== "number") params.set("sort", state.sort);
   return `/browse?${params.toString()}`;

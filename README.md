@@ -78,7 +78,7 @@ Two inventories, one toolbar language:
   sortable by Kangxi number or by stroke count either way.
 - Both axes open a gradient-filled stroke-distribution chart (recharts) whose
   bars double as filters, and both keep their state in the URL
-  (`?tab=characters&view=chart&stroke=7&sort=rare`).
+  (`?tab=characters&view=grid&stroke=7&sort=rare`, and `view=chart` is the default).
 - Every character and radical is a link into its own `/dictionary/:character`
   page.
 
@@ -115,7 +115,7 @@ process); every search after that is single-digit milliseconds.
 | `/dictionary/想?tab=characters` | The same entry with a reader tab open |
 | `/dictionary/木?tab=characters&sub=using` | The Characters tab's "Characters using 木" sub-tab |
 | `/browse` | Characters (by frequency, filterable by strokes) and the radical inventory |
-| `/browse?tab=strokes&view=chart&stroke=8&sort=asc` | Browse, with axis, chart, filter and sort in the URL |
+| `/browse?tab=characters&view=grid&stroke=8&sort=rare` | Browse, with axis, chart, filter and sort in the URL |
 | `/text` | The text reader |
 | `/saved` | Saved words |
 
@@ -124,8 +124,8 @@ Every in-app route shares one shell (title bar, sidebar, status bar) from
 search state survives the move.
 
 Browse (on its own `/browse` route) keeps its whole state in the query string —
-`tab` (`characters` / `radicals`), `view` (`chart` when the stroke-distribution
-panel is open), `stroke` (the active stroke filter) and `sort` (`common` /
+`tab` (`characters` / `radicals`), `view` (`grid` when the stroke-distribution
+panel is closed; it is open by default), `stroke` (the active stroke filter) and `sort` (`common` /
 `rare` for characters, `asc` / `desc` for radicals) — so a chart or a filtered
 grid is a link you can bookmark or paste. Both axes chart their stroke
 distribution, and the bars act as filters.

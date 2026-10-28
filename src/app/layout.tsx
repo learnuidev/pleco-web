@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { themeBootScript } from "@/lib/storage";
 
 import "./globals.css";
 
@@ -32,6 +33,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-screen overflow-hidden">
+        {/*
+          Paints the saved appearance before anything renders: React effects run
+          after the first paint, which made dark-mode reloads flash white.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript() }} />
         <TooltipProvider delayDuration={250}>{children}</TooltipProvider>
       </body>
     </html>

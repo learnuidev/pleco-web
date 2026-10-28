@@ -75,6 +75,8 @@ with the same data set Pleco-style apps use.
 - The radical grid filters by stroke count, sorts by Kangxi number (default)
   or stroke count either way, and opens a gradient-filled stroke-distribution
   chart (recharts) whose bars double as filters.
+- Every character and radical is a link into its own `/dictionary/:character`
+  page.
 
 **Saved words**
 
@@ -98,6 +100,22 @@ npm run dev          # http://localhost:4310
 
 On the first request the server compiles HanziJS' data files (~1 s, once per
 process); every search after that is single-digit milliseconds.
+
+### Routes
+
+| URL | What it serves |
+| --- | --- |
+| `/` | Redirects to `/dictionary` |
+| `/dictionary` | The workbench, nothing selected |
+| `/dictionary/:character` | The same workbench, booted into that entry |
+
+The dictionary is one layout — sidebar, search, result list and reader — and the
+address bar simply follows what the reader shows. Selecting a result, a Recent
+item, a saved word or a related entry rewrites the URL with `replaceState` (no
+reload), so every entry is linkable and shareable while the shell keeps its
+state. Anything that is a character (a browse card, a radical tile) navigates to
+its `/dictionary/:character` URL; decomposition, phonetic clues and stroke order
+stay in the reader's **Characters** and **Strokes** tabs.
 
 ```bash
 npm run build && npm start   # production build on :4310
@@ -125,6 +143,7 @@ checks before deciding between the local file and the CDN.
 src/
   app/
     api/            search · entry · suggest · segment · browse · character · component · status
+    dictionary/     /dictionary and /dictionary/[character] — the workbench at a real URL
     globals.css     design tokens (Apple-flavoured materials, elevation, dark mode)
   components/
     workbench/      shell, sidebar, splitter, reducer-backed state

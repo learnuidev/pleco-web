@@ -1,5 +1,7 @@
 "use client";
 
+import { WORKBENCH_STORAGE_KEY } from "@/lib/storage";
+
 import {
   createContext,
   useCallback,
@@ -53,6 +55,7 @@ export type WorkbenchAction =
   | { type: "set-script"; script: Script }
   | { type: "toggle-pinyin-marks" }
   | { type: "select-entry"; id: number | null; hitId?: number | null }
+  | { type: "open-entry"; id: number }
   | { type: "toggle-save"; item: SavedItem }
   | { type: "remove-saved"; id: number }
   | { type: "push-history"; item: HistoryItem }
@@ -98,6 +101,15 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
         selectedId: action.id,
         activeHitId: action.hitId === undefined ? action.id : action.hitId,
       };
+    case "open-entry":
+      // Picking an entry from Recent, Saved or the text reader always lands on
+      // the dictionary view, even when the user was browsing another tab.
+      return {
+        ...state,
+        selectedId: action.id,
+        activeHitId: action.id,
+        view: "dictionary",
+      };
     case "toggle-save": {
       const exists = state.saved.some((item) => item.id === action.item.id);
       return {
@@ -136,8 +148,6 @@ const initialState: WorkbenchState = {
   resultLimit: 60,
 };
 
-const STORAGE_KEY = "pleco-web:workbench:v1";
-
 type WorkbenchContextValue = {
   state: WorkbenchState;
   dispatch: Dispatch<WorkbenchAction>;
@@ -148,40 +158,57 @@ type WorkbenchContextValue = {
 
 const WorkbenchContext = createContext<WorkbenchContextValue | null>(null);
 
-export function WorkbenchProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(workbenchReducer, initialState);
+/** What the URL hands the workbench when it boots from `/dictionary/:character`. */
+export type WorkbenchInitialState = Partial<Pick<WorkbenchState, "query" | "selectedId" | "view">>;
+
+export function WorkbenchProvider({
+  children,
+  initial,
+}: {
+  children: ReactNode;
+  initial?: WorkbenchInitialState;
+}) {
+  const [state, dispatch] = useReducer(workbenchReducer, { ...initialState, ...initial });
 
   // Restore then persist. Reading in an effect (not during render) keeps SSR and
   // the first client render identical.
   useEffect(() => {
+    const hasRoute = initial?.query !== undefined || initial?.selectedId !== undefined;
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<WorkbenchState>;
-        dispatch({
-          type: "hydrate",
-          state: {
-            saved: parsed.saved ?? [],
-            history: parsed.history ?? [],
-            script: parsed.script ?? "simplified",
-            showPinyinMarks: parsed.showPinyinMarks ?? true,
-            view: parsed.view ?? "dictionary",
-            textInput: parsed.textInput ?? "",
-          },
-        });
-      } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        dispatch({ type: "hydrate", state: { theme: "dark" } });
-      }
+      const raw = window.localStorage.getItem(WORKBENCH_STORAGE_KEY);
+      const parsed = (raw ? JSON.parse(raw) : {}) as Partial<WorkbenchState>;
+      dispatch({
+        type: "hydrate",
+        state: {
+          saved: parsed.saved ?? [],
+          history: parsed.history ?? [],
+          script: parsed.script ?? "simplified",
+          showPinyinMarks: parsed.showPinyinMarks ?? true,
+          // The route wins over the last session: a shared link must open the
+          // entry it names, not whatever the browser looked at last.
+          view: initial?.view ?? parsed.view ?? "dictionary",
+          textInput: parsed.textInput ?? "",
+          query: initial?.query ?? parsed.query ?? "",
+          selectedId: hasRoute ? initial?.selectedId ?? null : parsed.selectedId ?? null,
+          // An explicit appearance choice sticks across reloads; the OS
+          // preference is only a first-run default.
+          theme:
+            parsed.theme ??
+            (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+        },
+      });
     } catch {
       // Corrupt storage should never break the app.
     }
+    // `initial` is fixed for the lifetime of a route render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
       try {
         window.localStorage.setItem(
-          STORAGE_KEY,
+          WORKBENCH_STORAGE_KEY,
           JSON.stringify({
             saved: state.saved,
             history: state.history,
@@ -189,6 +216,9 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
             showPinyinMarks: state.showPinyinMarks,
             view: state.view,
             textInput: state.textInput,
+            query: state.query,
+            selectedId: state.selectedId,
+            theme: state.theme,
           }),
         );
       } catch {
@@ -203,6 +233,9 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     state.showPinyinMarks,
     state.view,
     state.textInput,
+    state.query,
+    state.selectedId,
+    state.theme,
   ]);
 
   useEffect(() => {

@@ -1,11 +1,20 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChartColumn, Hash, Loader2 } from "lucide-react";
+import {
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
+  ArrowUpRight,
+  ChartColumn,
+  Hash,
+  Loader2,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Glyph } from "@/components/glyph";
 import { RadicalDistribution } from "@/components/browse/radical-distribution";
+import { characterHref } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 type BrowseItem = {
@@ -72,8 +81,12 @@ function FilterChip({
  * The radical grid supports the usual Pleco moves: filter by stroke count, sort
  * by Kangxi number (default) or by stroke count, and pop the stroke distribution
  * chart open to see the whole inventory at a glance.
+ *
+ * Every character and radical is a link into its own `/dictionary/:character`
+ * page, so browsing lands on a real entry rather than an in-place search.
  */
-export function BrowseView({ onSearch }: { onSearch: (query: string) => void }) {
+export function BrowseView() {
+  const router = useRouter();
   const [axis, setAxis] = useState<Axis>("frequency");
   const [items, setItems] = useState<BrowseItem[]>([]);
   const [radicals, setRadicals] = useState<Radical[]>([]);
@@ -302,8 +315,8 @@ export function BrowseView({ onSearch }: { onSearch: (query: string) => void }) 
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(index, 40) * 0.006 }}
-                onClick={() => onSearch(radical.glyph)}
-                className="focus-halo group flex items-center gap-2.5 rounded-xl bg-card px-2.5 py-2 text-left shadow-hairline ring-1 ring-black/5 transition-all hover:shadow-raised hover:ring-primary/25 dark:ring-white/8"
+                onClick={() => router.push(characterHref(radical.glyph))}
+                className="focus-halo group relative flex items-center gap-2.5 rounded-xl bg-card px-2.5 py-2 text-left shadow-hairline ring-1 ring-black/5 transition-all hover:shadow-raised hover:ring-primary/25 dark:ring-white/8"
               >
                 <Glyph size="md" className="shrink-0">
                   {radical.glyph}
@@ -321,6 +334,7 @@ export function BrowseView({ onSearch }: { onSearch: (query: string) => void }) 
                     {radical.characterCount ? <span>· {radical.characterCount}</span> : null}
                   </span>
                 </span>
+                <ArrowUpRight className="absolute right-1.5 top-1.5 size-3 text-primary/0 transition-colors group-hover:text-primary/70" />
               </motion.button>
             ))}
             {visibleRadicals.length === 0 && !loading ? (
@@ -338,9 +352,10 @@ export function BrowseView({ onSearch }: { onSearch: (query: string) => void }) 
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(index, 36) * 0.005 }}
-                onClick={() => onSearch(item.character)}
-                className="focus-halo group flex flex-col items-center gap-1 rounded-xl bg-card px-2 pb-2 pt-2.5 shadow-hairline ring-1 ring-black/5 transition-all hover:shadow-raised hover:ring-primary/25 dark:ring-white/8"
+                onClick={() => router.push(characterHref(item.character))}
+                className="focus-halo group relative flex flex-col items-center gap-1 rounded-xl bg-card px-2 pb-2 pt-2.5 shadow-hairline ring-1 ring-black/5 transition-all hover:shadow-raised hover:ring-primary/25 dark:ring-white/8"
               >
+                <ArrowUpRight className="absolute right-1.5 top-1.5 size-3 text-primary/0 transition-colors group-hover:text-primary/70" />
                 <Glyph size="lg" className="text-foreground">
                   {item.character}
                 </Glyph>

@@ -29,7 +29,8 @@ export function Sidebar({
   onSelectEntry,
   onSearch,
 }: {
-  onSelectEntry: (id: number) => void;
+  /** Opens an entry; the headword lets the address bar follow along. */
+  onSelectEntry: (id: number, headword?: string) => void;
   onSearch: (query: string) => void;
 }) {
   const { state, dispatch } = useWorkbench();
@@ -109,7 +110,7 @@ export function Sidebar({
                 <li key={item.id}>
                   <button
                     type="button"
-                    onClick={() => onSelectEntry(item.id)}
+                    onClick={() => onSelectEntry(item.id, item.headword)}
                     className={cn(
                       "focus-halo flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors",
                       state.selectedId === item.id
@@ -161,7 +162,7 @@ export function Sidebar({
                 <li key={item.id} className="group flex items-center">
                   <button
                     type="button"
-                    onClick={() => onSelectEntry(item.id)}
+                    onClick={() => onSelectEntry(item.id, item.headword)}
                     className="focus-halo flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-foreground/6"
                   >
                     <span className="glyph shrink-0 text-[14px]">{item.headword}</span>

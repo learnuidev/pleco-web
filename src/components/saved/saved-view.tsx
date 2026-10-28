@@ -15,7 +15,7 @@ export function SavedView({
   onSelectEntry,
   onSearch,
 }: {
-  onSelectEntry: (id: number) => void;
+  onSelectEntry: (id: number, headword?: string) => void;
   onSearch: (query: string) => void;
 }) {
   const { state, dispatch } = useWorkbench();
@@ -81,7 +81,7 @@ export function SavedView({
               >
                 <button
                   type="button"
-                  onClick={() => onSelectEntry(item.id)}
+                  onClick={() => onSelectEntry(item.id, item.headword)}
                   className="focus-halo flex w-full items-start gap-3 rounded-xl text-left"
                 >
                   <Glyph size="lg" className="shrink-0">

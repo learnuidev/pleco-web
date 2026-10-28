@@ -22,6 +22,7 @@ import { useWorkbench } from "@/components/workbench/state";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDictionarySearch } from "@/hooks/use-dictionary-search";
 import type { ApiStatusResponse } from "@/lib/api-types";
+import { syncDictionaryUrl } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 /**
@@ -54,6 +55,15 @@ export function Workbench() {
   const selectEntry = useCallback(
     (id: number) => {
       dispatch({ type: "select-entry", id });
+    },
+    [dispatch],
+  );
+
+  /** Opening from Recent/Saved/reader: select, switch to the dictionary, sync URL. */
+  const openEntry = useCallback(
+    (id: number, headword?: string) => {
+      dispatch({ type: "open-entry", id });
+      if (headword) syncDictionaryUrl(headword);
     },
     [dispatch],
   );
@@ -221,7 +231,7 @@ export function Workbench() {
 
       {/* Body */}
       <div className="flex min-h-0 flex-1">
-        <Sidebar onSelectEntry={selectEntry} onSearch={runSearch} />
+        <Sidebar onSelectEntry={openEntry} onSearch={runSearch} />
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
           {state.view === "dictionary" ? (
@@ -254,14 +264,14 @@ export function Workbench() {
 
           {state.view === "text" ? (
             <div className="flex min-h-0 flex-1 flex-col">
-              <TextAnalyzer onSelectEntry={selectEntry} />
+              <TextAnalyzer onSelectEntry={openEntry} />
             </div>
           ) : null}
 
-          {state.view === "browse" ? <BrowseView onSearch={runSearch} /> : null}
+          {state.view === "browse" ? <BrowseView /> : null}
 
           {state.view === "saved" ? (
-            <SavedView onSelectEntry={selectEntry} onSearch={runSearch} />
+            <SavedView onSelectEntry={openEntry} onSearch={runSearch} />
           ) : null}
         </main>
       </div>

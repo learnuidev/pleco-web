@@ -10,6 +10,7 @@ import { ExampleBuckets, RelatedList } from "@/components/entry/example-buckets"
 import { Panel } from "@/components/workbench/panel";
 import { StrokeOrderPanel } from "@/components/stroke/stroke-order-panel";
 import { useWorkbench, type SavedItem } from "@/components/workbench/state";
+import { syncDictionaryUrl } from "@/lib/routes";
 import type { EntryDetail } from "@/lib/dictionary/types";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +86,12 @@ export function EntryDetailPane({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail?.entry.id]);
+
+  /** The address bar follows the reader: /dictionary/:headword. */
+  useEffect(() => {
+    if (!detail) return;
+    syncDictionaryUrl(detail.entry.simplified);
+  }, [detail]);
 
   const isSaved = useMemo(
     () => (detail ? state.saved.some((item) => item.id === detail.entry.id) : false),

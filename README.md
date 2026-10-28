@@ -93,8 +93,11 @@ Two inventories, one toolbar language (Radicals opens first):
   characters it orders by learned coverage of their components (highest first),
   breaking ties by the fewest unlearned components and then corpus rank; for
   primitives and radicals it puts unlearned components first, most-usable
-  (most characters) before the rest. It reads the learned set from the workbench
-  and shows each tile's badge (`33%` coverage, or `learned`).
+  (most characters) before the rest.
+- Tiles carry an **unlock badge** in the top-right corner, using the Learning
+  icons: ✦ (Sparkles) for fully unlocked — a character whose every component is
+  learned, or a learned radical/primitive — and 🔓 (Unlock) for partly unlocked
+  characters, with the coverage percentage in the tooltip.
 - Every character and radical is a link into its own `/dictionary/:character`
   page.
 

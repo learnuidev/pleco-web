@@ -199,11 +199,21 @@ export async function GET(request: Request) {
 
   const items = characters
     .map(toBrowseItem)
-    .sort((a, b) => rankDelta(a.rank, b.rank) * (sort === "rare" ? -1 : 1));
+    .sort((a, b) => rankDelta(a.rank, b.rank) * (sort === "rare" ? -1 : 1))
+    .slice(0, MAX_CHARACTERS)
+    // Attach the learned coverage so the grid can badge unlock status.
+    .map((item) =>
+      learned.length === 0
+        ? item
+        : (() => {
+            const coverage = coverageOf(item.character, taught);
+            return { ...item, coverage: coverage.percent, missing: coverage.missing };
+          })(),
+    );
 
   return NextResponse.json(
     {
-      items: items.slice(0, MAX_CHARACTERS),
+      items,
       total: items.length,
       stroke,
       sort,

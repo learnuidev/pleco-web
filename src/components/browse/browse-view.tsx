@@ -7,11 +7,12 @@ import {
   ArrowUpRight,
   ChartColumn,
   Hash,
+  Sparkles,
   TrendingDown,
   TrendingUp,
+  Unlock,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { StrokeDistribution } from "@/components/browse/stroke-distribution";
@@ -104,6 +105,44 @@ function strokeParam(raw: string | null): number | null {
   if (raw === null || raw === "") return null;
   const value = Number(raw);
   return Number.isInteger(value) && value >= 1 && value <= 64 ? value : null;
+}
+
+/** Top-right corner of a browse tile: unlock status, or the hover arrow. */
+function TileStatus({
+  full,
+  partial,
+  coverage,
+}: {
+  /** Fully unlocked (or learned, for single-component tiles). */
+  full: boolean;
+  /** Partly unlocked — only characters can be partial. */
+  partial?: boolean;
+  /** Coverage percentage, for the tooltip. */
+  coverage?: number | null;
+}) {
+  if (full) {
+    return (
+      <span
+        className="absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full bg-success/15 text-success"
+        title="Fully unlocked"
+      >
+        <Sparkles className="size-2.5" />
+      </span>
+    );
+  }
+  if (partial) {
+    return (
+      <span
+        className="absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full bg-primary/12 text-primary"
+        title={`Partly unlocked${coverage != null ? ` · ${coverage}% learned` : ""}`}
+      >
+        <Unlock className="size-2.5" />
+      </span>
+    );
+  }
+  return (
+    <ArrowUpRight className="absolute right-1.5 top-1.5 size-3 text-primary/0 transition-colors group-hover:text-primary/70" />
+  );
 }
 
 function FilterChip({
@@ -577,7 +616,7 @@ export function BrowseView() {
                 } · used in ${primitive.characterCount} characters`}
                 className="focus-halo group relative flex flex-col items-center gap-1 rounded-xl bg-card px-2 pb-2 pt-2.5 shadow-hairline ring-1 ring-black/5 transition-all hover:shadow-raised hover:ring-primary/25 dark:ring-white/8"
               >
-                <ArrowUpRight className="absolute right-1.5 top-1.5 size-3 text-primary/0 transition-colors group-hover:text-primary/70" />
+                <TileStatus full={primitive.learned} />
                 <Glyph size="lg" className="text-foreground">
                   {primitive.glyph}
                 </Glyph>
@@ -658,7 +697,7 @@ export function BrowseView() {
                     </span>
                   ) : null}
                 </span>
-                <ArrowUpRight className="absolute right-1.5 top-1.5 size-3 text-primary/0 transition-colors group-hover:text-primary/70" />
+                <TileStatus full={form.learned} />
               </motion.button>
             ))}
             {visibleRadicals.length === 0 && !loading ? (
@@ -679,7 +718,11 @@ export function BrowseView() {
                 onClick={() => router.push(characterHref(item.character))}
                 className="focus-halo group relative flex flex-col items-center gap-1 rounded-xl bg-card px-2 pb-2 pt-2.5 shadow-hairline ring-1 ring-black/5 transition-all hover:shadow-raised hover:ring-primary/25 dark:ring-white/8"
               >
-                <ArrowUpRight className="absolute right-1.5 top-1.5 size-3 text-primary/0 transition-colors group-hover:text-primary/70" />
+                <TileStatus
+                  full={item.coverage === 100}
+                  partial={item.coverage != null && item.coverage > 0}
+                  coverage={item.coverage}
+                />
                 <Glyph size="lg" className="text-foreground">
                   {item.character}
                 </Glyph>

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { SearchField } from "@/components/search/search-field";
 import { Sidebar } from "@/components/workbench/sidebar";
-import { useWorkbench } from "@/components/workbench/state";
+import { useWorkbench, type HistoryItem } from "@/components/workbench/state";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ApiStatusResponse } from "@/lib/api-types";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
  * segmented control and a status readout for the loaded data.
  */
 export function WorkbenchShell({ children }: { children: React.ReactNode }) {
-  const { state, dispatch, result, runSearch, selectEntry } = useWorkbench();
+  const { state, dispatch, result, runSearch, selectEntry, openEntry, openText } = useWorkbench();
   const [status, setStatus] = useState<ApiStatusResponse | null>(null);
 
   // Warm the server-side index on first paint so the first search is instant.
@@ -30,6 +30,12 @@ export function WorkbenchShell({ children }: { children: React.ReactNode }) {
       .then((data: ApiStatusResponse | null) => setStatus(data))
       .catch(() => setStatus(null));
   }, []);
+
+  /** Reopen a history row: an entry, or a text session in the text reader. */
+  const openHistory = (item: HistoryItem) => {
+    if (item.kind === "entry") openEntry(item.id, item.headword);
+    else openText(item.text);
+  };
 
   const hits = result?.hits ?? [];
   const currentIndex = useMemo(
@@ -65,12 +71,14 @@ export function WorkbenchShell({ children }: { children: React.ReactNode }) {
       if (event.key === "[" || event.key === "]") {
         if (state.history.length === 0) return;
         event.preventDefault();
-        const index = state.history.findIndex((item) => item.id === state.selectedId);
+        const index = state.history.findIndex(
+          (item) => item.kind === "entry" && item.id === state.selectedId,
+        );
         const next =
           event.key === "["
             ? Math.min(index === -1 ? 0 : index + 1, state.history.length - 1)
             : Math.max((index === -1 ? 0 : index) - 1, 0);
-        selectEntry(state.history[next].id);
+        openHistory(state.history[next]);
       }
     }
 
@@ -90,9 +98,11 @@ export function WorkbenchShell({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => {
-                  const index = state.history.findIndex((item) => item.id === state.selectedId);
+                  const index = state.history.findIndex(
+                    (item) => item.kind === "entry" && item.id === state.selectedId,
+                  );
                   const next = Math.min(index === -1 ? 0 : index + 1, state.history.length - 1);
-                  if (state.history[next]) selectEntry(state.history[next].id);
+                  if (state.history[next]) openHistory(state.history[next]);
                 }}
                 disabled={state.history.length === 0}
                 className="focus-halo grid size-7 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/8 hover:text-foreground disabled:opacity-35 disabled:hover:bg-transparent"
@@ -107,9 +117,11 @@ export function WorkbenchShell({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => {
-                  const index = state.history.findIndex((item) => item.id === state.selectedId);
+                  const index = state.history.findIndex(
+                    (item) => item.kind === "entry" && item.id === state.selectedId,
+                  );
                   const next = Math.max((index === -1 ? 0 : index) - 1, 0);
-                  if (state.history[next]) selectEntry(state.history[next].id);
+                  if (state.history[next]) openHistory(state.history[next]);
                 }}
                 disabled={state.history.length === 0}
                 className="focus-halo grid size-7 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/8 hover:text-foreground disabled:opacity-35 disabled:hover:bg-transparent"

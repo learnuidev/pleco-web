@@ -25,11 +25,12 @@ const NAV: Array<{ href: string; label: string; icon: typeof Search; hint: strin
   { href: "/dictionary", label: "Dictionary", icon: Search, hint: "Search the dictionary" },
   { href: "/text", label: "Text", icon: FileText, hint: "Paste text and read it character by character" },
   { href: "/browse", label: "Browse", icon: Compass, hint: "Browse characters and radicals" },
+  { href: "/history", label: "History", icon: Clock3, hint: "Everything you opened, in 20-minute blocks" },
   { href: "/saved", label: "Saved words", icon: BookMarked, hint: "Your saved words" },
 ];
 
 export function Sidebar() {
-  const { state, dispatch, openEntry, runSearch } = useWorkbench();
+  const { state, dispatch, openEntry, openText, runSearch } = useWorkbench();
   const pathname = usePathname();
 
   return (
@@ -94,6 +95,12 @@ export function Sidebar() {
           <span className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-muted-foreground">
             Recent
           </span>
+          <Link
+            href="/history"
+            className="focus-halo ml-auto rounded text-[10.5px] text-primary hover:underline"
+          >
+            all
+          </Link>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
@@ -104,26 +111,41 @@ export function Sidebar() {
           ) : (
             <ul className="space-y-px">
               {state.history.slice(0, 18).map((item) => (
-                <li key={item.id}>
+                <li key={item.key}>
                   <button
                     type="button"
-                    onClick={() => openEntry(item.id, item.headword)}
+                    onClick={() =>
+                      item.kind === "entry" ? openEntry(item.id, item.headword) : openText(item.text)
+                    }
                     className={cn(
                       "focus-halo flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors",
-                      state.selectedId === item.id
+                      item.kind === "entry" && state.selectedId === item.id
                         ? "bg-sidebar-accent"
                         : "hover:bg-foreground/6",
                     )}
                   >
-                    <span className="glyph shrink-0 text-[15px]">{item.headword}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[11.5px] text-primary">
-                        {item.pinyin}
-                      </span>
-                      <span className="block truncate text-[11px] text-muted-foreground">
-                        {item.gloss}
-                      </span>
-                    </span>
+                    {item.kind === "entry" ? (
+                      <>
+                        <span className="glyph shrink-0 text-[15px]">{item.headword}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[11.5px] text-primary">
+                            {item.pinyin}
+                          </span>
+                          <span className="block truncate text-[11px] text-muted-foreground">
+                            {item.gloss}
+                          </span>
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[11px] text-muted-foreground">
+                            {item.text.slice(0, 30)}
+                          </span>
+                        </span>
+                      </>
+                    )}
                   </button>
                 </li>
               ))}

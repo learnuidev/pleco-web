@@ -28,13 +28,27 @@ export type SavedItem = {
   addedAt: number;
 };
 
-export type HistoryItem = {
+export type EntryHistoryItem = {
+  kind: "entry";
+  key: string;
   id: number;
   headword: string;
   pinyin: string;
   gloss: string;
   at: number;
 };
+
+export type TextHistoryItem = {
+  kind: "text";
+  key: string;
+  text: string;
+  at: number;
+};
+
+export type HistoryItem = EntryHistoryItem | TextHistoryItem;
+
+export const entryHistoryKey = (id: number) => `entry:${id}`;
+export const textHistoryKey = (text: string) => `text:${text}`;
 
 export type WorkbenchState = {
   query: string;
@@ -62,6 +76,8 @@ export type WorkbenchAction =
   | { type: "toggle-save"; item: SavedItem }
   | { type: "remove-saved"; id: number }
   | { type: "push-history"; item: HistoryItem }
+  | { type: "push-text-history"; text: string }
+  | { type: "clear-history" }
   | { type: "set-text-input"; value: string }
   | { type: "set-theme"; theme: "light" | "dark" }
   | { type: "hydrate"; state: Partial<WorkbenchState> };
@@ -69,13 +85,44 @@ export type WorkbenchAction =
 const HISTORY_LIMIT = 40;
 
 function uniqueHistory(history: HistoryItem[]): HistoryItem[] {
-  const seen = new Set<number>();
+  const seen = new Set<string>();
   const out: HistoryItem[] = [];
   for (const item of history) {
-    if (seen.has(item.id)) continue;
-    seen.add(item.id);
+    if (seen.has(item.key)) continue;
+    seen.add(item.key);
     out.push(item);
     if (out.length >= HISTORY_LIMIT) break;
+  }
+  return out;
+}
+
+/** Older builds stored bare entries without `kind`; bring them forward. */
+function normaliseHistory(items: unknown): HistoryItem[] {
+  if (!Array.isArray(items)) return [];
+  const out: HistoryItem[] = [];
+  for (const raw of items) {
+    if (!raw || typeof raw !== "object") continue;
+    const item = raw as Record<string, unknown>;
+    if (item.kind === "text" && typeof item.text === "string") {
+      out.push({
+        kind: "text",
+        key: textHistoryKey(item.text),
+        text: item.text,
+        at: Number(item.at) || Date.now(),
+      });
+      continue;
+    }
+    if (typeof item.id === "number") {
+      out.push({
+        kind: "entry",
+        key: entryHistoryKey(item.id),
+        id: item.id,
+        headword: String(item.headword ?? ""),
+        pinyin: String(item.pinyin ?? ""),
+        gloss: String(item.gloss ?? ""),
+        at: Number(item.at) || Date.now(),
+      });
+    }
   }
   return out;
 }
@@ -128,6 +175,18 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
       return { ...state, saved: state.saved.filter((item) => item.id !== action.id) };
     case "push-history":
       return { ...state, history: uniqueHistory([action.item, ...state.history]) };
+    case "push-text-history": {
+      const text = action.text;
+      const item: TextHistoryItem = { kind: "text", key: textHistoryKey(text), text, at: Date.now() };
+      const [first, ...rest] = state.history;
+      // While a passage is being edited, refresh its entry instead of stacking
+      // one per keystroke pause.
+      const editing =
+        first?.kind === "text" && (text.startsWith(first.text) || first.text.startsWith(text));
+      return { ...state, history: uniqueHistory([item, ...(editing ? rest : state.history)]) };
+    }
+    case "clear-history":
+      return { ...state, history: [] };
     case "set-text-input":
       return { ...state, textInput: action.value };
     case "set-theme":
@@ -164,6 +223,8 @@ type WorkbenchContextValue = {
   error: string | null;
   selectEntry: (id: number) => void;
   openEntry: (id: number, headword?: string) => void;
+  /** Restores a text session and lands on the text reader. */
+  openText: (text: string) => void;
   runSearch: (query: string) => void;
 };
 
@@ -185,7 +246,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         type: "hydrate",
         state: {
           saved: parsed.saved ?? [],
-          history: parsed.history ?? [],
+          history: normaliseHistory(parsed.history),
           script: parsed.script ?? "simplified",
           showPinyinMarks: parsed.showPinyinMarks ?? true,
           textInput: parsed.textInput ?? "",
@@ -283,6 +344,15 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     [pathname, router],
   );
 
+  /** Restore a text session from history and switch to the text reader. */
+  const openText = useCallback(
+    (text: string) => {
+      dispatch({ type: "set-text-input", value: text });
+      if (!pathname.startsWith("/text")) router.push("/text");
+    },
+    [pathname, router],
+  );
+
   const value = useMemo<WorkbenchContextValue>(
     () => ({
       state,
@@ -294,9 +364,10 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       error,
       selectEntry,
       openEntry,
+      openText,
       runSearch,
     }),
-    [state, headword, traditionalHint, result, loading, error, selectEntry, openEntry, runSearch],
+    [state, headword, traditionalHint, result, loading, error, selectEntry, openEntry, openText, runSearch],
   );
 
   return <WorkbenchContext.Provider value={value}>{children}</WorkbenchContext.Provider>;

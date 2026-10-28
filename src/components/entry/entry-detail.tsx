@@ -15,7 +15,7 @@ import { EntryHero } from "@/components/entry/entry-hero";
 import { ExampleBuckets, RelatedList } from "@/components/entry/example-buckets";
 import { Panel } from "@/components/workbench/panel";
 import { StrokeOrderPanel } from "@/components/stroke/stroke-order-panel";
-import { useWorkbench, type SavedItem } from "@/components/workbench/state";
+import { entryHistoryKey, useWorkbench, type SavedItem } from "@/components/workbench/state";
 import {
   entryHref,
   isReaderSubTab,
@@ -121,6 +121,8 @@ export function EntryDetailPane() {
     dispatch({
       type: "push-history",
       item: {
+        kind: "entry",
+        key: entryHistoryKey(detail.entry.id),
         id: detail.entry.id,
         headword: detail.entry.simplified,
         pinyin: detail.pinyin,

@@ -36,9 +36,11 @@ const SAMPLES = [
  * pinyin reading and stroke-order shortcut for every unique character.
  */
 export function TextAnalyzer() {
-  const { openEntry } = useWorkbench();
+  const { openEntry, state, dispatch } = useWorkbench();
   const onSelectEntry = openEntry;
-  const [text, setText] = useState("");
+  // The passage lives in the workbench so a history click can restore it.
+  const text = state.textInput;
+  const setText = (value: string) => dispatch({ type: "set-text-input", value });
   const [tokens, setTokens] = useState<Token[]>([]);
   const [characters, setCharacters] = useState<CharacterEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -69,6 +71,8 @@ export function TextAnalyzer() {
         if (cancelled || !data) return;
         setTokens(data.tokens);
         setCharacters(data.characters);
+        // Remember the passage in history so it can be reopened from /history.
+        dispatch({ type: "push-text-history", text: value });
       })
       .catch(() => {
         // aborted or offline

@@ -66,6 +66,8 @@ with the same data set Pleco-style apps use.
 
 - Paste a passage → longest-match segmentation with pinyin under each word, a
   hover gloss, and a per-character grid with readings.
+- Passages you analyse are remembered in History as text sessions; clicking one
+  reopens the text reader with that passage restored.
 
 **Browse**
 
@@ -118,6 +120,7 @@ process); every search after that is single-digit milliseconds.
 | `/browse?tab=characters&view=grid&stroke=8&sort=rare` | Browse, with axis, chart, filter and sort in the URL |
 | `/text` | The text reader |
 | `/saved` | Saved words |
+| `/history` | Everything opened in the reader, grouped into blocks (newest first) |
 
 Every in-app route shares one shell (title bar, sidebar, status bar) from
 `(workbench)/layout.tsx`, so switching routes only swaps the content area and the

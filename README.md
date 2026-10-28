@@ -103,10 +103,16 @@ Two inventories, one toolbar language (Radicals opens first):
 - Mark any character, radical, primitive **or stroke shape** as learned from the
   reader (glyphs without a CC-CEDICT entry get a building-block page with its own
   Learn button).
-- `/learning` lists everything learned, plus the characters those components
-  **fully unlock** (every radical, primitive *and stroke* learned) and **partly
-  unlock** (some learned — with the percentage over all components and the
-  missing ones, each linking straight to the component you need to learn).
+- `/learning` is tabbed — **Overview** (the default), **Learned**, **Fully
+  unlocked**, **Partly unlocked** (`?tab=learned`, `?tab=full`, `?tab=partial`).
+  Full means every radical, primitive *and stroke* of the character is learned;
+  partial shows the percentage plus the missing components, each linking straight
+  to the component you need to learn.
+- **Overview** is the stats page: learned / fully unlocked / partly unlocked
+  counts, average progress, and a distribution chart (recharts) of every unlocked
+  character bucketed by share learned — accent colour for partly unlocked,
+  success colour for fully unlocked — plus the characters closest to being
+  unlocked.
 
 **Saved words**
 
@@ -145,7 +151,7 @@ process); every search after that is single-digit milliseconds.
 | `/text` | The text reader |
 | `/saved` | Saved words |
 | `/history` | Everything opened in the reader, grouped into blocks (newest first) |
-| `/learning` | Learned characters/radicals and the characters they unlock |
+| `/learning` | Learned characters and unlocks — Overview with the progress chart, plus `?tab=learned`, `?tab=full`, `?tab=partial` |
 
 Every in-app route shares one shell (title bar, sidebar, status bar) from
 `(workbench)/layout.tsx`, so switching routes only swaps the content area and the

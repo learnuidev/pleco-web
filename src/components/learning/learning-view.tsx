@@ -1,12 +1,15 @@
 "use client";
 
-import { GraduationCap, Sparkles, Trash2, Unlock } from "lucide-react";
+import { motion } from "framer-motion";
+import { ChartColumn, GraduationCap, Sparkles, Trash2, Unlock } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Glyph } from "@/components/glyph";
+import { LearningProgressChart } from "@/components/learning/learning-progress-chart";
 import { Button } from "@/components/ui/button";
 import { useWorkbench } from "@/components/workbench/state";
-import { characterHref } from "@/lib/routes";
+import { characterHref, isLearningTab, learningHref, type LearningTabKey } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 type LearnSummary = {
@@ -28,13 +31,25 @@ type LearningPayload = {
   full: LearnUnlock[];
   partial: LearnUnlock[];
   counts: { learned: number; full: number; partial: number };
+  /** Unlock counts by learned-percentage bucket (0,10,…,100). */
+  histogram: Record<number, number>;
+  averagePercent: number;
 };
+
+const LEARNING_TAB_LABELS: Array<{ key: LearningTabKey; label: string; icon: typeof GraduationCap }> = [
+  { key: "overview", label: "Overview", icon: ChartColumn },
+  { key: "learned", label: "Learned", icon: GraduationCap },
+  { key: "full", label: "Fully unlocked", icon: Sparkles },
+  { key: "partial", label: "Partly unlocked", icon: Unlock },
+];
 
 const EMPTY: LearningPayload = {
   learned: [],
   full: [],
   partial: [],
   counts: { learned: 0, full: 0, partial: 0 },
+  histogram: {},
+  averagePercent: 0,
 };
 
 /**
@@ -47,6 +62,17 @@ const EMPTY: LearningPayload = {
  */
 export function LearningView() {
   const { state, dispatch, openCharacter } = useWorkbench();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const tab: LearningTabKey = isLearningTab(tabParam) ? tabParam : "overview";
+
+  const goToTab = (next: LearningTabKey) => {
+    const href = learningHref(next);
+    if (`${window.location.pathname}${window.location.search}` !== href) {
+      router.push(href, { scroll: false });
+    }
+  };
   const [payload, setPayload] = useState<LearningPayload>(EMPTY);
   const [loading, setLoading] = useState(false);
 
@@ -125,10 +151,89 @@ export function LearningView() {
         </div>
       </div>
 
+      <div className="hairline-b flex flex-wrap items-center gap-1 px-4 py-1.5">
+        {LEARNING_TAB_LABELS.map(({ key, label, icon: Icon }) => {
+          const active = tab === key;
+          const count =
+            key === "overview"
+              ? payload.counts.full + payload.counts.partial
+              : key === "learned"
+                ? total
+                : key === "full"
+                  ? payload.counts.full
+                  : payload.counts.partial;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => goToTab(key)}
+              aria-pressed={active}
+              className={cn(
+                "focus-halo relative flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors",
+                active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {active ? (
+                <motion.span
+                  layoutId="learning-tab-pill"
+                  className="absolute inset-0 rounded-full bg-primary"
+                  transition={{ type: "spring", stiffness: 520, damping: 38 }}
+                />
+              ) : null}
+              <span className="relative inline-flex items-center gap-1.5">
+                <Icon className="size-3.5" />
+                {label}
+                <span
+                  className={cn(
+                    "tabular rounded-full px-1.5 py-px text-[10px]",
+                    active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-foreground/6",
+                  )}
+                >
+                  {count}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        <div className="space-y-5">
+        {tab === "overview" ? (
+          <div className="space-y-3">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              <StatCard label="Learned" value={String(payload.counts.learned)} hint="characters, components & strokes" />
+              <StatCard label="Fully unlocked" value={String(payload.counts.full)} hint="every component learned" tone="success" />
+              <StatCard label="Partly unlocked" value={String(payload.counts.partial)} hint="in progress" tone="primary" />
+              <StatCard label="Average progress" value={`${payload.averagePercent}%`} hint="across your unlocks" />
+            </div>
+
+            <LearningProgressChart histogram={payload.histogram} />
+
+            {payload.partial.length > 0 ? (
+              <section>
+                <div className="mb-2 flex items-center gap-2">
+                  <Sparkles className="size-3.5 text-primary" />
+                  <h2 className="text-[12.5px] font-semibold tracking-tight">Closest to unlocked</h2>
+                  <span className="text-[10.5px] text-muted-foreground">
+                    the partly unlocked characters nearest to done
+                  </span>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {payload.partial.slice(0, 6).map((unlock) => (
+                    <PartialCard key={unlock.glyph} unlock={unlock} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </div>
+        ) : null}
+
+        {tab === "learned" ? (
           <section>
-            <SectionHeading icon={GraduationCap} title="Learned" count={total} hint="characters and radicals you marked" />
+            <p className="mb-2 text-[10.5px] text-muted-foreground">
+              Characters, radicals, primitives and stroke shapes you marked as learned — click any
+              one to open it, hover to forget it.
+            </p>
             <div className="grid gap-1 sm:grid-cols-2 xl:grid-cols-3">
               {payload.learned.map((item) => (
                 <div
@@ -171,15 +276,13 @@ export function LearningView() {
               ))}
             </div>
           </section>
+        ) : null}
 
+        {tab === "full" ? (
           <section>
-            <SectionHeading
-              icon={Sparkles}
-              title="Fully unlocked"
-              count={payload.counts.full}
-              hint="every component learned — the character is ready to meet"
-              tone="primary"
-            />
+            <p className="mb-2 text-[10.5px] text-muted-foreground">
+              Every component learned — the character is ready to meet.
+            </p>
             {payload.full.length > 0 ? (
               <div className="grid gap-1 sm:grid-cols-2 xl:grid-cols-3">
                 {payload.full.map((unlock) => (
@@ -187,17 +290,20 @@ export function LearningView() {
                 ))}
               </div>
             ) : (
-              <EmptyNote>{loading ? "Checking your components…" : "Learn a character's components to unlock it here."}</EmptyNote>
+              <EmptyNote>
+                {loading
+                  ? "Checking your components…"
+                  : "Learn a character's components to unlock it here."}
+              </EmptyNote>
             )}
           </section>
+        ) : null}
 
+        {tab === "partial" ? (
           <section>
-            <SectionHeading
-              icon={Unlock}
-              title="Partly unlocked"
-              count={payload.counts.partial}
-              hint="some components learned — finish them to unlock"
-            />
+            <p className="mb-2 text-[10.5px] text-muted-foreground">
+              Some components learned — finish the highlighted ones to unlock the character.
+            </p>
             {payload.partial.length > 0 ? (
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {payload.partial.map((unlock) => (
@@ -210,8 +316,36 @@ export function LearningView() {
               </EmptyNote>
             )}
           </section>
-        </div>
+        ) : null}
       </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  hint,
+  tone = "muted",
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  tone?: "muted" | "primary" | "success";
+}) {
+  return (
+    <div className="rounded-2xl bg-card px-3 py-2.5 shadow-hairline ring-1 ring-black/5 dark:ring-white/8">
+      <p className="text-[10px] uppercase tracking-[0.07em] text-muted-foreground">{label}</p>
+      <p
+        className={cn(
+          "tabular text-[20px] font-semibold leading-tight",
+          tone === "primary" && "text-primary",
+          tone === "success" && "text-success",
+        )}
+      >
+        {value}
+      </p>
+      <p className="truncate text-[10.5px] text-muted-foreground">{hint}</p>
     </div>
   );
 }
@@ -301,36 +435,6 @@ function PartialCard({ unlock }: { unlock: LearnUnlock }) {
           </button>
         ))}
       </div>
-    </div>
-  );
-}
-
-function SectionHeading({
-  icon: Icon,
-  title,
-  count,
-  hint,
-  tone = "muted",
-}: {
-  icon: typeof GraduationCap;
-  title: string;
-  count: number;
-  hint: string;
-  tone?: "muted" | "primary";
-}) {
-  return (
-    <div className="mb-2 flex flex-wrap items-center gap-2">
-      <Icon className={cn("size-3.5", tone === "primary" ? "text-primary" : "text-muted-foreground")} />
-      <h2 className="text-[12.5px] font-semibold tracking-tight">{title}</h2>
-      <span
-        className={cn(
-          "tabular rounded-full px-1.5 py-px text-[10px]",
-          tone === "primary" ? "bg-primary/10 text-primary" : "bg-foreground/6 text-muted-foreground",
-        )}
-      >
-        {count}
-      </span>
-      <span className="text-[10.5px] text-muted-foreground">{hint}</span>
     </div>
   );
 }

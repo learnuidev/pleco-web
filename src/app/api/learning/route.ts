@@ -128,6 +128,17 @@ export async function GET(request: Request) {
   full.sort(byRank);
   partial.sort((a, b) => b.percent - a.percent || byRank(a, b));
 
+  // Distribution of every unlock by how much of it is learned, plus the overall
+  // stats — computed before the lists are capped.
+  const histogram: Record<number, number> = {};
+  let percentSum = 0;
+  for (const unlock of [...full, ...partial]) {
+    const bucket = unlock.percent >= 100 ? 100 : Math.min(90, Math.floor(unlock.percent / 10) * 10);
+    histogram[bucket] = (histogram[bucket] ?? 0) + 1;
+    percentSum += unlock.percent;
+  }
+  const totalUnlocks = full.length + partial.length;
+
   return NextResponse.json(
     {
       learned: learned.map(summary),
@@ -138,6 +149,8 @@ export async function GET(request: Request) {
         full: full.length,
         partial: partial.length,
       },
+      histogram,
+      averagePercent: totalUnlocks > 0 ? Math.round(percentSum / totalUnlocks) : 0,
     },
     { headers: { "Cache-Control": "no-store" } },
   );

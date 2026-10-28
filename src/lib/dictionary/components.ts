@@ -14,12 +14,6 @@
 import { getRadicals } from "./frequency";
 import { decompose, radicalMeaning } from "../hanzi";
 
-/** CJK stroke symbols (㇇ ㇏ ㇒ …) are not learnable components. */
-export function isLearnable(glyph: string): boolean {
-  const cp = glyph.codePointAt(0) ?? 0;
-  return cp < 0x31c0 || cp > 0x31ef;
-}
-
 /**
  * Components are compared by meaning for radicals, so learning 丶 covers ⺀ and
  * one form of a radical covers its other forms; anything else compares by glyph.
@@ -61,7 +55,6 @@ export function componentsOf(character: string): Map<string, string> {
   const components = new Map<string, string>();
   const add = (glyph: string | undefined) => {
     if (!glyph || glyph === "No glyph available" || glyph === character) return;
-    if (!isLearnable(glyph)) return;
     const key = componentKey(glyph);
     if (!components.has(key)) components.set(key, canonicalGlyph(key) ?? glyph);
   };

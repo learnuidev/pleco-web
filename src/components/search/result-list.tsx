@@ -2,10 +2,12 @@
 
 import { motion } from "framer-motion";
 import { Loader2, SearchX } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 import { Glyph } from "@/components/glyph";
 import { useWorkbench } from "@/components/workbench/state";
+import { characterHref } from "@/lib/routes";
 import type { ApiSearchResponse } from "@/lib/api-types";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +35,7 @@ export function ResultList({
   onSelect: (id: number) => void;
 }) {
   const { state, headword, traditionalHint } = useWorkbench();
+  const router = useRouter();
   const listRef = useRef<HTMLUListElement | null>(null);
   const activeRef = useRef<HTMLLIElement | null>(null);
 
@@ -105,7 +108,11 @@ export function ResultList({
             >
               <button
                 type="button"
-                onClick={() => onSelect(hit.entry.id)}
+                onClick={() =>
+                  hit.entry.id < 0
+                    ? router.push(characterHref(hit.entry.simplified))
+                    : onSelect(hit.entry.id)
+                }
                 className={cn(
                   "focus-halo group flex w-full items-start gap-3 rounded-xl px-2.5 py-2 text-left transition-colors",
                   active ? "bg-primary text-primary-foreground" : "hover:bg-foreground/6",

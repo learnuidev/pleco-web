@@ -120,6 +120,19 @@ export function pinyinSearchKey(input: string): string {
 
 const HAN = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/;
 
+/** CJK stroke symbols (㇀ ㉉ ㇏ …) — shapes rather than text, but glyphs all the same. */
+export function isStrokeCharacter(char: string): boolean {
+  const cp = char.codePointAt(0) ?? 0;
+  return cp >= 0x31c0 && cp <= 0x31ef;
+}
+
+/** Han text, or a single CJK stroke symbol — anything worth looking up as a glyph. */
+export function isGlyphText(text: string): boolean {
+  if (isHanText(text)) return true;
+  const characters = Array.from(text);
+  return characters.length === 1 && isStrokeCharacter(characters[0]);
+}
+
 export function isHanCharacter(char: string): boolean {
   return HAN.test(char);
 }

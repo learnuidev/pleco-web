@@ -15,9 +15,11 @@
 import { getDictionary, glosses, type DictionaryEntry } from "./cedict";
 import { componentCharacters } from "../hanzi";
 import { getFrequencyTable } from "./frequency";
-import { isHanText, pinyinSearchKey, pinyinToMarks } from "../pinyin";
+import { isGlyphText, isHanText, isStrokeCharacter, pinyinSearchKey, pinyinToMarks } from "../pinyin";
 
 export type SearchKind = "word" | "character" | "pinyin" | "english" | "contains";
+
+
 
 export type SearchDoc = {
   entry: DictionaryEntry;
@@ -213,6 +215,35 @@ function searchChinese(query: string, limit: number): { hits: SearchHit[]; segme
   const trimmed = query.trim();
   const hits: SearchHit[] = [];
 
+  // A query that is a single building block (stroke symbol, component with no
+  // headword) deserves its own result: the glyph itself, whose page shows what
+  // it is made of and which characters use it. Kept aside so the "no hits"
+  // fallbacks below still run and find the characters that contain it.
+  let glyphHit: SearchHit | null = null;
+  if (Array.from(trimmed).length === 1 && lookupExact(trimmed).length === 0) {
+    const isStroke = isStrokeCharacter(trimmed);
+    const usedIn = componentCharacters(trimmed).length;
+    if (isStroke || usedIn > 0) {
+      glyphHit = {
+        entry: {
+          id: -(100_000 + (trimmed.codePointAt(0) ?? 0)),
+          traditional: trimmed,
+          simplified: trimmed,
+          pinyin: "",
+          definition: isStroke
+            ? `stroke shape · used in ${usedIn} characters`
+            : `component · used in ${usedIn} characters`,
+        },
+        pinyin: "",
+        pinyinKey: "",
+        frequency: null,
+        matchedOn: "contains",
+        matched: trimmed,
+        score: -1,
+      };
+    }
+  }
+
   for (const id of lookupExact(trimmed)) {
     hits.push(toHit(getSearchIndex().docs[id], "word", trimmed, true));
   }
@@ -261,7 +292,10 @@ function searchChinese(query: string, limit: number): { hits: SearchHit[]; segme
     }
   }
 
-  return { hits: hits.slice(0, limit * 4), segments };
+  return {
+    hits: (glyphHit ? [glyphHit, ...hits] : hits).slice(0, limit * 4),
+    segments,
+  };
 }
 
 function searchPinyin(query: string, limit: number): SearchHit[] {
@@ -355,7 +389,7 @@ function searchEnglish(query: string, limit: number): SearchHit[] {
 export function detectMode(query: string): SearchMode {
   const trimmed = query.trim();
   if (!trimmed) return "empty";
-  const hasHan = isHanText(trimmed);
+  const hasHan = isGlyphText(trimmed);
   const hasLatin = /[a-z]/i.test(trimmed);
   if (hasHan && hasLatin) return "mixed";
   if (hasHan) return "chinese";

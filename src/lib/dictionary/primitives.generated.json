@@ -1,5 +1,19 @@
 [
  {
+  "glyph": "㇒",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 635
+ },
+ {
+  "glyph": "㇆",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 218
+ },
+ {
   "glyph": "习",
   "pinyin": "xí",
   "meaning": "to practice; to study; habit",
@@ -12,6 +26,13 @@
   "meaning": "within; among; in; middle; center; while (doing sth); during; China; Chinese, hit (the mark)",
   "strokes": 4,
   "characterCount": 147
+ },
+ {
+  "glyph": "㇗",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 131
  },
  {
   "glyph": "丁",
@@ -33,6 +54,13 @@
   "meaning": "twenty",
   "strokes": 4,
   "characterCount": 102
+ },
+ {
+  "glyph": "㇉",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 88
  },
  {
   "glyph": "丰",
@@ -63,6 +91,20 @@
   "characterCount": 60
  },
  {
+  "glyph": "㇇",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 59
+ },
+ {
+  "glyph": "㇎",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 58
+ },
+ {
   "glyph": "业",
   "pinyin": "yè",
   "meaning": "business; occupation; study",
@@ -84,11 +126,25 @@
   "characterCount": 53
  },
  {
+  "glyph": "㇈",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 53
+ },
+ {
   "glyph": "兀",
   "pinyin": "wù, wū",
   "meaning": "(surname); cut off the feet; rising to a height; towering; bald",
   "strokes": 3,
   "characterCount": 49
+ },
+ {
+  "glyph": "㇂",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 48
  },
  {
   "glyph": "甫",
@@ -126,6 +182,13 @@
   "characterCount": 41
  },
  {
+  "glyph": "㇖",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 41
+ },
+ {
   "glyph": "万",
   "pinyin": "wàn",
   "meaning": "Wan (surname); ten thousand; a great number",
@@ -137,6 +200,20 @@
   "pinyin": "kuī",
   "meaning": "deficiency; deficit",
   "strokes": 3,
+  "characterCount": 39
+ },
+ {
+  "glyph": "㇏",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 39
+ },
+ {
+  "glyph": "㇠",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
   "characterCount": 39
  },
  {
@@ -221,6 +298,13 @@
   "pinyin": "bāo",
   "meaning": "to cover; to wrap; to hold; to include; to take charge of; package; wrapper; container; bag; to hold or embrace; bundle; packet; to contract (to or for)",
   "strokes": 5,
+  "characterCount": 30
+ },
+ {
+  "glyph": "㇙",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
   "characterCount": 30
  },
  {
@@ -455,6 +539,13 @@
   "characterCount": 16
  },
  {
+  "glyph": "㇛",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 16
+ },
+ {
   "glyph": "头",
   "pinyin": "tóu, tou",
   "meaning": "head, suff. for nouns",
@@ -602,6 +693,34 @@
   "characterCount": 11
  },
  {
+  "glyph": "㇊",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 11
+ },
+ {
+  "glyph": "㇌",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 11
+ },
+ {
+  "glyph": "㇋",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 11
+ },
+ {
+  "glyph": "㇁",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 11
+ },
+ {
   "glyph": "司",
   "pinyin": "sī",
   "meaning": "company; control",
@@ -648,6 +767,13 @@
   "pinyin": "tí",
   "meaning": "",
   "strokes": 10,
+  "characterCount": 9
+ },
+ {
+  "glyph": "㇝",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
   "characterCount": 9
  },
  {
@@ -1001,6 +1127,13 @@
   "characterCount": 3
  },
  {
+  "glyph": "㇅",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 3
+ },
+ {
   "glyph": "之",
   "pinyin": "zhī",
   "meaning": "(literary equivalent of 的); (subor. part.); him; her; it",
@@ -1047,6 +1180,27 @@
   "pinyin": "zhōu",
   "meaning": "congee; gruel; porridge",
   "strokes": 12,
+  "characterCount": 2
+ },
+ {
+  "glyph": "㇀",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 2
+ },
+ {
+  "glyph": "㇕",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
+  "characterCount": 2
+ },
+ {
+  "glyph": "㇜",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
   "characterCount": 2
  },
  {
@@ -1201,6 +1355,13 @@
   "pinyin": "piē",
   "meaning": "protium",
   "strokes": 5,
+  "characterCount": 1
+ },
+ {
+  "glyph": "㇃",
+  "pinyin": "",
+  "meaning": "stroke",
+  "strokes": 1,
   "characterCount": 1
  }
 ]

@@ -81,7 +81,8 @@ Two inventories, one toolbar language (Radicals opens first):
 - **Primitives** — the building blocks HanziJS decomposition stops at that are not
   radicals (习, 中, 丁, 甲, 廿, 丰, 乂 …), each with pinyin, stroke count and how
   many characters use it; filterable by strokes, sortable by usage or stroke
-  count, with the same distribution chart.
+  count, with the same distribution chart. **CJK stroke symbols** (㇒, ㇆, ㇉, …)
+  are first class here too, glossed as `stroke`.
 - **Characters** — the frequency-ranked corpus, filterable by stroke count,
   ordered most-common or least-common first, with #N, pinyin and gloss on each
   tile.
@@ -99,11 +100,13 @@ Two inventories, one toolbar language (Radicals opens first):
 
 **Learning**
 
-- Mark any character, radical or primitive as learned from the reader.
+- Mark any character, radical, primitive **or stroke shape** as learned from the
+  reader (glyphs without a CC-CEDICT entry get a building-block page with its own
+  Learn button).
 - `/learning` lists everything learned, plus the characters those components
-  **fully unlock** (every radical *and* primitive learned) and **partly unlock**
-  (some learned — with the percentage over all components and the missing ones,
-  each linking straight to the component you need to learn).
+  **fully unlock** (every radical, primitive *and stroke* learned) and **partly
+  unlock** (some learned — with the percentage over all components and the
+  missing ones, each linking straight to the component you need to learn).
 
 **Saved words**
 
@@ -155,6 +158,10 @@ panel is closed; it is open by default), `stroke` (the active stroke filter) and
 `asc` / `desc` / `recommended` for radicals) — so a chart or a filtered grid is a
 link you can bookmark or paste. Both axes chart their stroke
 distribution, and the bars act as filters.
+
+Searching a stroke shape or a bare component (㇉, 阝, 忄 …) returns the glyph
+itself followed by every character that contains it; opening the glyph shows a
+building-block page where it can be learned.
 
 A radical's **Characters using** sub-tab groups its family into **Popular** (Jun Da
 rank under 5,000) and **Less popular** (rank 5,000+ or unranked), each row showing

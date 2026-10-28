@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { buildCharacterInfo } from "@/lib/dictionary/character";
-import { isHanText } from "@/lib/pinyin";
+import { isGlyphText } from "@/lib/pinyin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export async function GET(request: Request, context: { params: Promise<{ glyph: 
   const { glyph } = await context.params;
   const character = decodeURIComponent(glyph);
 
-  if (!isHanText(character)) {
+  if (!isGlyphText(character)) {
     return NextResponse.json({ error: "Not a Chinese character" }, { status: 400 });
   }
 

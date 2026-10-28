@@ -4,7 +4,6 @@ import {
   canonicalGlyph,
   componentKey,
   componentsOf,
-  isLearnable,
   taughtKeys as keysFor,
 } from "@/lib/dictionary/components";
 import { getFrequencyTable } from "@/lib/dictionary/frequency";
@@ -96,7 +95,7 @@ export async function GET(request: Request) {
     // plus any learned glyph the decomposition folds away.
     const components = componentsOf(character);
     for (const glyph of family.get(character) ?? []) {
-      if (!glyph || glyph === character || !isLearnable(glyph)) continue;
+      if (!glyph || glyph === character) continue;
       const key = componentKey(glyph);
       if (!components.has(key)) components.set(key, canonicalGlyph(key) ?? glyph);
     }

@@ -20,7 +20,8 @@ import { cn } from "@/lib/utils";
  * segmented control and a status readout for the loaded data.
  */
 export function WorkbenchShell({ children }: { children: React.ReactNode }) {
-  const { state, dispatch, result, runSearch, selectEntry, openEntry, openText } = useWorkbench();
+  const { state, dispatch, result, runSearch, selectEntry, openEntry, openText, openCharacter } =
+    useWorkbench();
   const [status, setStatus] = useState<ApiStatusResponse | null>(null);
 
   // Warm the server-side index on first paint so the first search is instant.
@@ -65,7 +66,9 @@ export function WorkbenchShell({ children }: { children: React.ReactNode }) {
           currentIndex === -1
             ? 0
             : Math.min(Math.max(currentIndex + (event.key === "ArrowDown" ? 1 : -1), 0), hits.length - 1);
-        selectEntry(hits[nextIndex].entry.id);
+        const hit = hits[nextIndex];
+        if (hit.entry.id < 0) openCharacter(hit.entry.simplified);
+        else selectEntry(hit.entry.id);
       }
 
       if (event.key === "[" || event.key === "]") {
@@ -84,7 +87,7 @@ export function WorkbenchShell({ children }: { children: React.ReactNode }) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [hits, currentIndex, selectEntry, state.history, state.selectedId]);
+  }, [hits, currentIndex, selectEntry, openCharacter, state.history, state.selectedId]);
 
   const scriptLabel = state.script === "simplified" ? "简" : "繁";
 

@@ -6,6 +6,7 @@ import { AudioLines, Hash, Info, Layers, Loader2, PenLine, Quote } from "lucide-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CharacterCard } from "@/components/entry/character-card";
+import { GlyphOnlyPanel } from "@/components/entry/glyph-only-panel";
 import {
   CharactersUsingPanel,
   CommonWordsPanel,
@@ -149,6 +150,31 @@ export function EntryDetailPane() {
     [state.learned, detail],
   );
 
+  // A single-glyph query with no selected entry: does the glyph have a headword?
+  // If not (stroke symbols, bare components) the reader shows its building-block
+  // page instead of an empty placeholder.
+  const singleGlyph =
+    entryId === null && Array.from(state.query.trim()).length === 1 ? state.query.trim() : null;
+  const [hasHeadword, setHasHeadword] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!singleGlyph) {
+      setHasHeadword(null);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/entry/${encodeURIComponent(singleGlyph)}`)
+      .then((response) => {
+        if (!cancelled) setHasHeadword(response.ok);
+      })
+      .catch(() => {
+        if (!cancelled) setHasHeadword(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [singleGlyph]);
+
   function toggleLearned() {
     if (!detail) return;
     dispatch({ type: "toggle-learned", glyph: detail.entry.simplified });
@@ -162,6 +188,9 @@ export function EntryDetailPane() {
   }, [detail]);
 
   if (entryId === null) {
+    if (singleGlyph && hasHeadword === false) {
+      return <GlyphOnlyPanel key={singleGlyph} glyph={singleGlyph} />;
+    }
     return <Placeholder />;
   }
 

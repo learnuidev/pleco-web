@@ -87,8 +87,11 @@ export type Radical = {
    * which is what that table counts.
    */
   strokes: number | null;
-  /** Other forms of the same radical (traditional or layout variants). */
-  variants: string[];
+  /**
+   * Other forms of the same radical (traditional or layout variants), each with
+   * the stroke count of that form.
+   */
+  variants: Array<{ glyph: string; strokes: number | null }>;
   /** Characters that use it, from the inventory table. */
   examples: string[];
 };
@@ -141,7 +144,7 @@ export function findRadicalMatch(candidates: string[]): Radical | null {
     for (const radical of getRadicals()) {
       index.set(radical.glyph, radical);
       for (const variant of radical.variants) {
-        if (!index.has(variant)) index.set(variant, radical);
+        if (!index.has(variant.glyph)) index.set(variant.glyph, radical);
       }
     }
     radicalIndex = index;

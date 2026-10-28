@@ -28,15 +28,17 @@ type BrowseItem = {
   strokes: number | null;
 };
 
-type Radical = {
+/** One browsable form of a radical: the canonical glyph or one of its variants. */
+type RadicalForm = {
+  key: string;
   number: number;
   glyph: string;
   meaning: string;
   pinyin: string;
   strokes: number | null;
-  variants: string[];
-  examples: string[];
+  isPrimary: boolean;
   characterCount: number | null;
+  examples: string[];
 };
 
 type CharacterSort = "common" | "rare";
@@ -198,7 +200,7 @@ export function BrowseView() {
     return tab === "radicals" || tab === "characters" ? tab : "characters";
   });
   const [items, setItems] = useState<BrowseItem[]>([]);
-  const [radicals, setRadicals] = useState<Radical[]>([]);
+  const [radicalForms, setRadicalForms] = useState<RadicalForm[]>([]);
   const [histogram, setHistogram] = useState<Record<number, number>>({});
   const [charStrokeFilter, setCharStrokeFilter] = useState<number | null>(() =>
     params.get("tab") !== "radicals" ? strokeParam(params.get("stroke")) : null,
@@ -223,8 +225,8 @@ export function BrowseView() {
       try {
         if (nextAxis === "radicals") {
           const response = await fetch("/api/browse?mode=radicals");
-          const data = (await response.json()) as { radicals: Radical[] };
-          setRadicals(data.radicals);
+          const data = (await response.json()) as { forms: RadicalForm[] };
+          setRadicalForms(data.forms);
         } else {
           const search = new URLSearchParams({ mode: "characters", sort });
           if (stroke !== null) search.set("stroke", String(stroke));
@@ -270,12 +272,12 @@ export function BrowseView() {
 
   const radicalStrokeHistogram = useMemo<Record<number, number>>(() => {
     const counts: Record<number, number> = {};
-    for (const radical of radicals) {
-      if (!radical.strokes) continue;
-      counts[radical.strokes] = (counts[radical.strokes] ?? 0) + 1;
+    for (const form of radicalForms) {
+      if (!form.strokes) continue;
+      counts[form.strokes] = (counts[form.strokes] ?? 0) + 1;
     }
     return counts;
-  }, [radicals]);
+  }, [radicalForms]);
 
   const radicalStrokeKeys = useMemo(
     () => Object.keys(radicalStrokeHistogram).map(Number).sort((a, b) => a - b),
@@ -296,19 +298,27 @@ export function BrowseView() {
     [radicalStrokeKeys, radicalStrokeHistogram],
   );
 
-  /** Filtered and sorted radical grid: Kangxi number order by default. */
+  /**
+   * Filtered and sorted radical grid. Every form is its own tile, so a stroke
+   * filter picks up variants too (氵 is a 3-stroke entry of radical 85).
+   */
   const visibleRadicals = useMemo(() => {
     const filtered =
       radicalStrokeFilter === null
-        ? radicals
-        : radicals.filter((radical) => radical.strokes === radicalStrokeFilter);
-    if (radicalSort === "number") return filtered;
+        ? radicalForms
+        : radicalForms.filter((form) => form.strokes === radicalStrokeFilter);
+    if (radicalSort === "number") {
+      // canonical glyph before its variants, radicals in Kangxi order
+      return [...filtered].sort(
+        (a, b) => a.number - b.number || Number(b.isPrimary) - Number(a.isPrimary),
+      );
+    }
     return [...filtered].sort((a, b) => {
       const diff = (a.strokes ?? 99) - (b.strokes ?? 99);
       if (diff !== 0) return radicalSort === "desc" ? -diff : diff;
-      return a.number - b.number;
+      return a.number - b.number || Number(b.isPrimary) - Number(a.isPrimary);
     });
-  }, [radicals, radicalStrokeFilter, radicalSort]);
+  }, [radicalForms, radicalStrokeFilter, radicalSort]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -393,48 +403,51 @@ export function BrowseView() {
 
         {axis === "radicals" ? (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(116px,1fr))] gap-2">
-            {visibleRadicals.map((radical, index) => {
-              const forms = [radical.glyph, ...radical.variants];
-              return (
-                <motion.button
-                  key={radical.number}
-                  type="button"
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(index, 40) * 0.006 }}
-                  onClick={() => router.push(characterHref(radical.glyph))}
-                  title={`${forms.join(" ")} · ${radical.pinyin} — ${radical.meaning}${
-                    radical.examples.length > 0 ? ` · ${radical.examples.join(" ")}` : ""
-                  }`}
-                  className="focus-halo group relative flex flex-col items-center gap-0.5 rounded-xl bg-card px-2 py-2 text-center shadow-hairline ring-1 ring-black/5 transition-all hover:shadow-raised hover:ring-primary/25 dark:ring-white/8"
+            {visibleRadicals.map((form, index) => (
+              <motion.button
+                key={form.key}
+                type="button"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(index, 40) * 0.006 }}
+                onClick={() => router.push(characterHref(form.glyph))}
+                title={`${form.glyph}${form.isPrimary ? "" : ` (form of #${form.number})`} · ${
+                  form.pinyin
+                } — ${form.meaning}${form.isPrimary ? "" : " · variant"}${
+                  form.examples.length > 0 ? ` · ${form.examples.join(" ")}` : ""
+                }`}
+                className={cn(
+                  "focus-halo group relative flex flex-col items-center gap-0.5 rounded-xl bg-card px-2 py-2 text-center shadow-hairline ring-1 transition-all hover:shadow-raised hover:ring-primary/25 dark:ring-white/8",
+                  form.isPrimary ? "ring-black/5" : "ring-black/10",
+                )}
+              >
+                <Glyph
+                  size="md"
+                  className={form.isPrimary ? "text-foreground" : "text-muted-foreground"}
                 >
-                  <span className="flex items-baseline justify-center gap-1">
-                    <Glyph size="md" className="text-foreground">
-                      {radical.glyph}
-                    </Glyph>
-                    {radical.variants.length > 0 ? (
-                      <span className="glyph text-[15px] leading-none text-muted-foreground">
-                        {radical.variants.join(" ")}
-                      </span>
-                    ) : null}
-                  </span>
-                  <span className="w-full truncate text-[11.5px] font-medium">
-                    {radical.meaning}
-                  </span>
-                  <span className="tabular flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                    <span>#{radical.number}</span>
-                    {radical.strokes ? (
-                      <span className="inline-flex items-center gap-0.5">
-                        <Hash className="size-2.5" />
-                        {radical.strokes}
-                      </span>
-                    ) : null}
-                    <span className="truncate text-primary/80">{radical.pinyin.split(",")[0]}</span>
-                  </span>
-                  <ArrowUpRight className="absolute right-1.5 top-1.5 size-3 text-primary/0 transition-colors group-hover:text-primary/70" />
-                </motion.button>
-              );
-            })}
+                  {form.glyph}
+                </Glyph>
+                <span
+                  className={cn(
+                    "w-full truncate text-[11.5px] font-medium",
+                    !form.isPrimary && "text-muted-foreground",
+                  )}
+                >
+                  {form.meaning}
+                </span>
+                <span className="tabular flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span>#{form.number}</span>
+                  {form.strokes ? (
+                    <span className="inline-flex items-center gap-0.5">
+                      <Hash className="size-2.5" />
+                      {form.strokes}
+                    </span>
+                  ) : null}
+                  <span className="truncate text-primary/80">{form.pinyin.split(",")[0]}</span>
+                </span>
+                <ArrowUpRight className="absolute right-1.5 top-1.5 size-3 text-primary/0 transition-colors group-hover:text-primary/70" />
+              </motion.button>
+            ))}
             {visibleRadicals.length === 0 && !loading ? (
               <p className="col-span-full py-8 text-center text-[12.5px] text-muted-foreground">
                 Nothing to show for this filter.

@@ -50,8 +50,14 @@
   "pinyin": "piě",
   "strokes": 1,
   "variants": [
-   "乀",
-   "乁"
+   {
+    "glyph": "乀",
+    "strokes": 1
+   },
+   {
+    "glyph": "乁",
+    "strokes": 1
+   }
   ],
   "examples": [
    "乂",
@@ -68,8 +74,14 @@
   "pinyin": "yǐ",
   "strokes": 1,
   "variants": [
-   "乚",
-   "乛"
+   {
+    "glyph": "乚",
+    "strokes": 1
+   },
+   {
+    "glyph": "乛",
+    "strokes": 1
+   }
   ],
   "examples": [
    "九",
@@ -128,7 +140,10 @@
   "pinyin": "rén",
   "strokes": 2,
   "variants": [
-   "亻"
+   {
+    "glyph": "亻",
+    "strokes": 2
+   }
   ],
   "examples": [
    "你",
@@ -173,7 +188,10 @@
   "pinyin": "bā",
   "strokes": 2,
   "variants": [
-   "丷"
+   {
+    "glyph": "丷",
+    "strokes": 2
+   }
   ],
   "examples": [
    "兮",
@@ -259,8 +277,14 @@
   "pinyin": "dāo",
   "strokes": 2,
   "variants": [
-   "刂",
-   "刁"
+   {
+    "glyph": "刂",
+    "strokes": 2
+   },
+   {
+    "glyph": "刁",
+    "strokes": 2
+   }
   ],
   "examples": [
    "刅",
@@ -610,8 +634,14 @@
   "pinyin": "xiǎo",
   "strokes": 3,
   "variants": [
-   "⺌",
-   "⺍"
+   {
+    "glyph": "⺌",
+    "strokes": 3
+   },
+   {
+    "glyph": "⺍",
+    "strokes": 3
+   }
   ],
   "examples": [
    "少",
@@ -627,7 +657,10 @@
   "pinyin": "wāng",
   "strokes": 3,
   "variants": [
-   "尣"
+   {
+    "glyph": "尣",
+    "strokes": 4
+   }
   ],
   "examples": [
    "尤",
@@ -686,8 +719,14 @@
   "pinyin": "chuān",
   "strokes": 3,
   "variants": [
-   "巛",
-   "巜"
+   {
+    "glyph": "巛",
+    "strokes": 3
+   },
+   {
+    "glyph": "巜",
+    "strokes": 2
+   }
   ],
   "examples": [
    "州",
@@ -839,7 +878,10 @@
   "pinyin": "jì",
   "strokes": 3,
   "variants": [
-   "彑"
+   {
+    "glyph": "彑",
+    "strokes": 3
+   }
   ],
   "examples": [
    "归",
@@ -884,7 +926,10 @@
   "pinyin": "xīn",
   "strokes": 4,
   "variants": [
-   "忄"
+   {
+    "glyph": "忄",
+    "strokes": 3
+   }
   ],
   "examples": [
    "必",
@@ -916,7 +961,10 @@
   "pinyin": "hù",
   "strokes": 4,
   "variants": [
-   "戶"
+   {
+    "glyph": "戶",
+    "strokes": 4
+   }
   ],
   "examples": [
    "房",
@@ -933,7 +981,10 @@
   "pinyin": "shǒu",
   "strokes": 4,
   "variants": [
-   "扌"
+   {
+    "glyph": "扌",
+    "strokes": 3
+   }
   ],
   "examples": [
    "扔",
@@ -963,7 +1014,10 @@
   "pinyin": "pū",
   "strokes": 4,
   "variants": [
-   "攵"
+   {
+    "glyph": "攵",
+    "strokes": 4
+   }
   ],
   "examples": [
    "收",
@@ -1039,7 +1093,10 @@
   "pinyin": "wú/jì",
   "strokes": 4,
   "variants": [
-   "旡"
+   {
+    "glyph": "旡",
+    "strokes": 4
+   }
   ],
   "examples": [
    "既"
@@ -1095,7 +1152,10 @@
   "pinyin": "mù",
   "strokes": 4,
   "variants": [
-   "朩"
+   {
+    "glyph": "朩",
+    "strokes": 4
+   }
   ],
   "examples": [
    "森",
@@ -1170,7 +1230,10 @@
   "pinyin": "mǔ",
   "strokes": 4,
   "variants": [
-   "毋"
+   {
+    "glyph": "毋",
+    "strokes": 4
+   }
   ],
   "examples": [
    "每",
@@ -1237,8 +1300,14 @@
   "pinyin": "shuǐ",
   "strokes": 4,
   "variants": [
-   "氵",
-   "氺"
+   {
+    "glyph": "氵",
+    "strokes": 3
+   },
+   {
+    "glyph": "氺",
+    "strokes": 5
+   }
   ],
   "examples": [
    "海",
@@ -1255,7 +1324,10 @@
   "pinyin": "huǒ",
   "strokes": 4,
   "variants": [
-   "灬"
+   {
+    "glyph": "灬",
+    "strokes": 4
+   }
   ],
   "examples": [
    "灯",
@@ -1272,7 +1344,10 @@
   "pinyin": "zhǎo/zhuǎ",
   "strokes": 4,
   "variants": [
-   "爫"
+   {
+    "glyph": "爫",
+    "strokes": 4
+   }
   ],
   "examples": [
    "爬",
@@ -1342,8 +1417,14 @@
   "pinyin": "niú",
   "strokes": 4,
   "variants": [
-   "牜",
-   "⺧"
+   {
+    "glyph": "牜",
+    "strokes": 4
+   },
+   {
+    "glyph": "⺧",
+    "strokes": 4
+   }
   ],
   "examples": [
    "牟",
@@ -1360,7 +1441,10 @@
   "pinyin": "quǎn",
   "strokes": 3,
   "variants": [
-   "犬"
+   {
+    "glyph": "犬",
+    "strokes": 4
+   }
   ],
   "examples": [
    "犮",
@@ -1389,7 +1473,10 @@
   "pinyin": "wáng/yù",
   "strokes": 5,
   "variants": [
-   "王"
+   {
+    "glyph": "王",
+    "strokes": 4
+   }
   ],
   "examples": [
    "珍",
@@ -1485,7 +1572,10 @@
   "pinyin": "pǐ",
   "strokes": 5,
   "variants": [
-   "𤴔"
+   {
+    "glyph": "𤴔",
+    "strokes": 5
+   }
   ],
   "examples": [
    "胥",
@@ -1628,7 +1718,10 @@
   "pinyin": "shì",
   "strokes": 5,
   "variants": [
-   "礻"
+   {
+    "glyph": "礻",
+    "strokes": 5
+   }
   ],
   "examples": [
    "礼",
@@ -1703,8 +1796,14 @@
   "pinyin": "zhú",
   "strokes": 6,
   "variants": [
-   "⺮",
-   "ケ"
+   {
+    "glyph": "⺮",
+    "strokes": 6
+   },
+   {
+    "glyph": "ケ",
+    "strokes": 3
+   }
   ],
   "examples": [
    "笑",
@@ -1736,7 +1835,10 @@
   "pinyin": "sī",
   "strokes": 3,
   "variants": [
-   "糸"
+   {
+    "glyph": "糸",
+    "strokes": 6
+   }
   ],
   "examples": [
    "红",
@@ -1766,8 +1868,14 @@
   "pinyin": "wǎng",
   "strokes": 6,
   "variants": [
-   "罒",
-   "罓"
+   {
+    "glyph": "罒",
+    "strokes": 5
+   },
+   {
+    "glyph": "罓",
+    "strokes": 4
+   }
   ],
   "examples": [
    "罗",
@@ -1783,8 +1891,14 @@
   "pinyin": "yáng",
   "strokes": 6,
   "variants": [
-   "⺶",
-   "⺷"
+   {
+    "glyph": "⺶",
+    "strokes": 6
+   },
+   {
+    "glyph": "⺷",
+    "strokes": 6
+   }
   ],
   "examples": [
    "美",
@@ -1815,7 +1929,10 @@
   "pinyin": "lǎo",
   "strokes": 6,
   "variants": [
-   "耂"
+   {
+    "glyph": "耂",
+    "strokes": 4
+   }
   ],
   "examples": [
    "者",
@@ -1886,7 +2003,10 @@
   "pinyin": "ròu",
   "strokes": 6,
   "variants": [
-   "月"
+   {
+    "glyph": "月",
+    "strokes": 4
+   }
   ],
   "examples": [
    "肖",
@@ -2085,7 +2205,10 @@
   "pinyin": "yī",
   "strokes": 6,
   "variants": [
-   "衤"
+   {
+    "glyph": "衤",
+    "strokes": 6
+   }
   ],
   "examples": [
    "表",
@@ -2102,7 +2225,10 @@
   "pinyin": "yà",
   "strokes": 6,
   "variants": [
-   "覀"
+   {
+    "glyph": "覀",
+    "strokes": 6
+   }
   ],
   "examples": [
    "要",
@@ -2117,7 +2243,10 @@
   "pinyin": "jiàn",
   "strokes": 4,
   "variants": [
-   "見"
+   {
+    "glyph": "見",
+    "strokes": 7
+   }
   ],
   "examples": [
    "观",
@@ -2145,7 +2274,10 @@
   "pinyin": "yán",
   "strokes": 2,
   "variants": [
-   "言"
+   {
+    "glyph": "言",
+    "strokes": 7
+   }
   ],
   "examples": [
    "计",
@@ -2211,7 +2343,10 @@
   "pinyin": "bèi",
   "strokes": 4,
   "variants": [
-   "貝"
+   {
+    "glyph": "貝",
+    "strokes": 7
+   }
   ],
   "examples": [
    "贞",
@@ -2281,7 +2416,10 @@
   "pinyin": "chē",
   "strokes": 4,
   "variants": [
-   "車"
+   {
+    "glyph": "車",
+    "strokes": 7
+   }
   ],
   "examples": [
    "轧",
@@ -2341,7 +2479,10 @@
   "pinyin": "yì",
   "strokes": 7,
   "variants": [
-   "阝"
+   {
+    "glyph": "阝",
+    "strokes": 3
+   }
   ],
   "examples": [
    "那",
@@ -2397,7 +2538,10 @@
   "pinyin": "jīn",
   "strokes": 5,
   "variants": [
-   "金"
+   {
+    "glyph": "金",
+    "strokes": 8
+   }
   ],
   "examples": [
    "银",
@@ -2414,7 +2558,10 @@
   "pinyin": "cháng",
   "strokes": 4,
   "variants": [
-   "長"
+   {
+    "glyph": "長",
+    "strokes": 8
+   }
   ],
   "examples": [
    "张",
@@ -2429,7 +2576,10 @@
   "pinyin": "mén",
   "strokes": 3,
   "variants": [
-   "門"
+   {
+    "glyph": "門",
+    "strokes": 8
+   }
   ],
   "examples": [
    "间",
@@ -2446,8 +2596,14 @@
   "pinyin": "fù",
   "strokes": 8,
   "variants": [
-   "阝",
-   "⻏"
+   {
+    "glyph": "阝",
+    "strokes": 3
+   },
+   {
+    "glyph": "⻏",
+    "strokes": 3
+   }
   ],
   "examples": [
    "陡",
@@ -2550,7 +2706,10 @@
   "pinyin": "wěi",
   "strokes": 4,
   "variants": [
-   "韋"
+   {
+    "glyph": "韋",
+    "strokes": 9
+   }
   ],
   "examples": [
    "韧",
@@ -2590,7 +2749,10 @@
   "pinyin": "yè",
   "strokes": 6,
   "variants": [
-   "頁"
+   {
+    "glyph": "頁",
+    "strokes": 9
+   }
   ],
   "examples": [
    "顶",
@@ -2606,7 +2768,10 @@
   "pinyin": "fēng",
   "strokes": 4,
   "variants": [
-   "風"
+   {
+    "glyph": "風",
+    "strokes": 9
+   }
   ],
   "examples": [
    "飒",
@@ -2621,7 +2786,10 @@
   "pinyin": "fēi",
   "strokes": 4,
   "variants": [
-   "飛"
+   {
+    "glyph": "飛",
+    "strokes": 9
+   }
   ],
   "examples": []
  },
@@ -2632,8 +2800,14 @@
   "pinyin": "shí",
   "strokes": 3,
   "variants": [
-   "飠",
-   "食"
+   {
+    "glyph": "飠",
+    "strokes": 9
+   },
+   {
+    "glyph": "食",
+    "strokes": 9
+   }
   ],
   "examples": [
    "饥",
@@ -2673,7 +2847,10 @@
   "pinyin": "mǎ",
   "strokes": 3,
   "variants": [
-   "馬"
+   {
+    "glyph": "馬",
+    "strokes": 10
+   }
   ],
   "examples": [
    "驰",
@@ -2775,7 +2952,10 @@
   "pinyin": "yú",
   "strokes": 8,
   "variants": [
-   "魚"
+   {
+    "glyph": "魚",
+    "strokes": 11
+   }
   ],
   "examples": [
    "鲜",
@@ -2790,7 +2970,10 @@
   "pinyin": "niǎo",
   "strokes": 5,
   "variants": [
-   "鳥"
+   {
+    "glyph": "鳥",
+    "strokes": 11
+   }
   ],
   "examples": [
    "鸡",
@@ -2827,7 +3010,10 @@
   "pinyin": "mài",
   "strokes": 7,
   "variants": [
-   "麥"
+   {
+    "glyph": "麥",
+    "strokes": 11
+   }
   ],
   "examples": [
    "麸"
@@ -2901,7 +3087,10 @@
   "pinyin": "měng",
   "strokes": 8,
   "variants": [
-   "黽"
+   {
+    "glyph": "黽",
+    "strokes": 13
+   }
   ],
   "examples": [
    "鼋"
@@ -2953,7 +3142,10 @@
   "pinyin": "qí",
   "strokes": 6,
   "variants": [
-   "齊"
+   {
+    "glyph": "齊",
+    "strokes": 14
+   }
   ],
   "examples": [
    "挤",
@@ -2968,7 +3160,10 @@
   "pinyin": "chǐ",
   "strokes": 8,
   "variants": [
-   "齒"
+   {
+    "glyph": "齒",
+    "strokes": 15
+   }
   ],
   "examples": [
    "龄",
@@ -2982,7 +3177,10 @@
   "pinyin": "lóng",
   "strokes": 5,
   "variants": [
-   "龍"
+   {
+    "glyph": "龍",
+    "strokes": 16
+   }
   ],
   "examples": [
    "龚",
@@ -2997,7 +3195,10 @@
   "pinyin": "guī",
   "strokes": 7,
   "variants": [
-   "龜"
+   {
+    "glyph": "龜",
+    "strokes": 16
+   }
   ],
   "examples": []
  },

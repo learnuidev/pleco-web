@@ -20,6 +20,19 @@ export type BrowseItem = {
 
 export type CharacterSort = "common" | "rare";
 
+export type RadicalForm = {
+  key: string;
+  number: number;
+  glyph: string;
+  meaning: string;
+  pinyin: string;
+  strokes: number | null;
+  /** The canonical glyph of the radical; variants are `false`. */
+  isPrimary: boolean;
+  characterCount: number | null;
+  examples: string[];
+};
+
 /**
  * Powers the Browse tab.
  *
@@ -36,15 +49,37 @@ export async function GET(request: Request) {
   const mode = searchParams.get("mode") ?? "characters";
 
   if (mode === "radicals") {
-    return NextResponse.json(
-      {
-        radicals: getRadicals().map((radical) => ({
-          ...radical,
-          characterCount: characterCountFor(radical.glyph),
-        })),
-      },
-      { headers: { "Cache-Control": "no-store" } },
-    );
+    // Each form is its own browsable entry: the canonical glyph and every
+    // variant carry their own stroke count and usage, so the stroke filters and
+    // the distribution chart can count them independently.
+    const forms: RadicalForm[] = [];
+    for (const radical of getRadicals()) {
+      forms.push({
+        key: `radical:${radical.number}`,
+        number: radical.number,
+        glyph: radical.glyph,
+        meaning: radical.meaning,
+        pinyin: radical.pinyin,
+        strokes: radical.strokes,
+        isPrimary: true,
+        characterCount: characterCountFor(radical.glyph),
+        examples: radical.examples,
+      });
+      radical.variants.forEach((variant, index) => {
+        forms.push({
+          key: `radical:${radical.number}:v${index}`,
+          number: radical.number,
+          glyph: variant.glyph,
+          meaning: radical.meaning,
+          pinyin: radical.pinyin,
+          strokes: variant.strokes,
+          isPrimary: false,
+          characterCount: characterCountFor(variant.glyph),
+          examples: radical.examples,
+        });
+      });
+    }
+    return NextResponse.json({ forms }, { headers: { "Cache-Control": "no-store" } });
   }
 
   if (mode === "component") {

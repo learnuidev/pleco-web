@@ -60,6 +60,8 @@ export type WorkbenchState = {
   saved: SavedItem[];
   /** Characters and radicals marked as learned. */
   learned: string[];
+  /** When each learned glyph was learned (epoch ms) — powers the time machine. */
+  learnedAt: Record<string, number>;
   history: HistoryItem[];
   textInput: string;
   theme: "light" | "dark";
@@ -85,6 +87,20 @@ export type WorkbenchAction =
   | { type: "set-text-input"; value: string }
   | { type: "set-theme"; theme: "light" | "dark" }
   | { type: "hydrate"; state: Partial<WorkbenchState> };
+
+/** Older saves stored only glyphs, not when they were learned. */
+function legacyLearnedAt(
+  learned: string[],
+  stored: Record<string, number> | undefined,
+): Record<string, number> {
+  const now = Date.now();
+  const timestamps: Record<string, number> = {};
+  for (const glyph of learned) {
+    const at = stored?.[glyph];
+    timestamps[glyph] = typeof at === "number" && Number.isFinite(at) ? at : now;
+  }
+  return timestamps;
+}
 
 const HISTORY_LIMIT = 40;
 
@@ -179,15 +195,22 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
       return { ...state, saved: state.saved.filter((item) => item.id !== action.id) };
     case "toggle-learned": {
       const exists = state.learned.includes(action.glyph);
+      if (exists) {
+        const { [action.glyph]: _forgotten, ...rest } = state.learnedAt;
+        return {
+          ...state,
+          learned: state.learned.filter((glyph) => glyph !== action.glyph),
+          learnedAt: rest,
+        };
+      }
       return {
         ...state,
-        learned: exists
-          ? state.learned.filter((glyph) => glyph !== action.glyph)
-          : [action.glyph, ...state.learned].slice(0, 500),
+        learned: [action.glyph, ...state.learned].slice(0, 500),
+        learnedAt: { ...state.learnedAt, [action.glyph]: Date.now() },
       };
     }
     case "clear-learned":
-      return { ...state, learned: [] };
+      return { ...state, learned: [], learnedAt: {} };
     case "push-history":
       return { ...state, history: uniqueHistory([action.item, ...state.history]) };
     case "push-text-history": {
@@ -221,6 +244,7 @@ const initialState: WorkbenchState = {
   activeHitId: null,
   saved: [],
   learned: [],
+  learnedAt: {},
   history: [],
   textInput: "",
   theme: "light",
@@ -260,11 +284,15 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     try {
       const raw = window.localStorage.getItem(WORKBENCH_STORAGE_KEY);
       const parsed = (raw ? JSON.parse(raw) : {}) as Partial<WorkbenchState>;
+      const learned = Array.isArray(parsed.learned)
+        ? parsed.learned.filter((glyph): glyph is string => typeof glyph === "string")
+        : [];
       dispatch({
         type: "hydrate",
         state: {
           saved: parsed.saved ?? [],
-          learned: parsed.learned ?? [],
+          learned,
+          learnedAt: legacyLearnedAt(learned, parsed.learnedAt),
           history: normaliseHistory(parsed.history),
           script: parsed.script ?? "simplified",
           showPinyinMarks: parsed.showPinyinMarks ?? true,
@@ -292,6 +320,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
           JSON.stringify({
             saved: state.saved,
             learned: state.learned,
+            learnedAt: state.learnedAt,
             history: state.history,
             script: state.script,
             showPinyinMarks: state.showPinyinMarks,
@@ -307,6 +336,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   }, [
     state.saved,
     state.learned,
+    state.learnedAt,
     state.history,
     state.script,
     state.showPinyinMarks,

@@ -113,6 +113,10 @@ Two inventories, one toolbar language (Radicals opens first):
   character bucketed by share learned — accent colour for partly unlocked,
   success colour for fully unlocked — plus the characters closest to being
   unlocked.
+- **Time machine** replays what you learned in order (glyph timestamps are stored
+  with the learned set): a slider plus Replay / step controls walks each learned
+  glyph and shows what it **fully unlocked** at that step and which characters it
+  **pushed forward**, with running counts.
 
 **Saved words**
 
@@ -151,7 +155,7 @@ process); every search after that is single-digit milliseconds.
 | `/text` | The text reader |
 | `/saved` | Saved words |
 | `/history` | Everything opened in the reader, grouped into blocks (newest first) |
-| `/learning` | Learned characters and unlocks — Overview with the progress chart, plus `?tab=learned`, `?tab=full`, `?tab=partial` |
+| `/learning` | Learned characters and unlocks — Overview with the progress chart, `?tab=learned`, `?tab=full`, `?tab=partial`, `?tab=timeline` (time machine) |
 
 Every in-app route shares one shell (title bar, sidebar, status bar) from
 `(workbench)/layout.tsx`, so switching routes only swaps the content area and the

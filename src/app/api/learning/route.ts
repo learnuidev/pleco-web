@@ -89,6 +89,8 @@ export async function GET(request: Request) {
 
   const full: UnlockCharacter[] = [];
   const partial: UnlockCharacter[] = [];
+  /** character → (component key → display glyph), reused by the time machine. */
+  const componentSets = new Map<string, Map<string, string>>();
 
   for (const character of family.keys()) {
     // Every level HanziJS decomposes at (once, radical, graphical, primitive),
@@ -110,6 +112,7 @@ export async function GET(request: Request) {
     }
     if (learnedComponents.length === 0) continue;
 
+    componentSets.set(character, components);
     const unlock: UnlockCharacter = {
       ...summary(character),
       components: [...components.values()],
@@ -127,6 +130,56 @@ export async function GET(request: Request) {
 
   full.sort(byRank);
   partial.sort((a, b) => b.percent - a.percent || byRank(a, b));
+
+  // Time machine: replay the learned glyphs in the order they were learned and
+  // report what each step unlocked or moved forward.
+  if (searchParams.get("timeline") === "1") {
+    const taught = new Set<string>();
+    const completed = new Set<string>();
+    const previousPercent = new Map<string, number>();
+    const steps: Array<{
+      glyph: string;
+      fullNew: string[];
+      progressed: Array<{ glyph: string; percent: number; delta: number }>;
+      counts: { full: number; partial: number };
+    }> = [];
+
+    for (const glyph of learned) {
+      taught.add(componentKey(glyph));
+      const fullNew: string[] = [];
+      const progressed: Array<{ glyph: string; percent: number; delta: number }> = [];
+
+      for (const [character, components] of componentSets) {
+        let learnedCount = 0;
+        for (const key of components.keys()) if (taught.has(key)) learnedCount += 1;
+        const percent = Math.round((learnedCount / components.size) * 100);
+        const before = previousPercent.get(character) ?? 0;
+        if (percent === 100 && !completed.has(character)) {
+          completed.add(character);
+          fullNew.push(character);
+        }
+        if (percent > before) progressed.push({ glyph: character, percent, delta: percent - before });
+        previousPercent.set(character, percent);
+      }
+
+      progressed.sort((a, b) => b.percent - a.percent);
+      let partialCount = 0;
+      for (const percent of previousPercent.values()) {
+        if (percent > 0 && percent < 100) partialCount += 1;
+      }
+      steps.push({
+        glyph,
+        fullNew,
+        progressed: progressed.slice(0, 12),
+        counts: { full: completed.size, partial: partialCount },
+      });
+    }
+
+    return NextResponse.json(
+      { steps, summary: { learned: learned.length, full: full.length, partial: partial.length } },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
 
   // Distribution of every unlock by how much of it is learned, plus the overall
   // stats — computed before the lists are capped.

@@ -75,7 +75,7 @@ export function syncEntryUrl(
 }
 
 /** Tabs of the Learning page; "overview" is the default. */
-export const LEARNING_TABS = ["overview", "learned", "full", "partial"] as const;
+export const LEARNING_TABS = ["overview", "learned", "full", "partial", "timeline"] as const;
 export type LearningTabKey = (typeof LEARNING_TABS)[number];
 
 export function isLearningTab(value: string | null | undefined): value is LearningTabKey {

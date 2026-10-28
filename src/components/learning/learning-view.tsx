@@ -1,12 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ChartColumn, GraduationCap, Sparkles, Trash2, Unlock } from "lucide-react";
+import { ChartColumn, Clock3, GraduationCap, Sparkles, Trash2, Unlock } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Glyph } from "@/components/glyph";
 import { LearningProgressChart } from "@/components/learning/learning-progress-chart";
+import { LearningTimeMachine } from "@/components/learning/learning-time-machine";
 import { Button } from "@/components/ui/button";
 import { useWorkbench } from "@/components/workbench/state";
 import { characterHref, isLearningTab, learningHref, type LearningTabKey } from "@/lib/routes";
@@ -41,6 +42,7 @@ const LEARNING_TAB_LABELS: Array<{ key: LearningTabKey; label: string; icon: typ
   { key: "learned", label: "Learned", icon: GraduationCap },
   { key: "full", label: "Fully unlocked", icon: Sparkles },
   { key: "partial", label: "Partly unlocked", icon: Unlock },
+  { key: "timeline", label: "Time machine", icon: Clock3 },
 ];
 
 const EMPTY: LearningPayload = {
@@ -161,7 +163,9 @@ export function LearningView() {
                 ? total
                 : key === "full"
                   ? payload.counts.full
-                  : payload.counts.partial;
+                  : key === "partial"
+                    ? payload.counts.partial
+                    : total;
           return (
             <button
               key={key}
@@ -226,6 +230,15 @@ export function LearningView() {
               </section>
             ) : null}
           </div>
+        ) : null}
+
+        {tab === "timeline" ? (
+          <LearningTimeMachine
+            events={state.learned
+              .map((glyph) => ({ glyph, at: state.learnedAt[glyph] ?? 0 }))
+              .sort((a, b) => a.at - b.at)}
+            openCharacter={openCharacter}
+          />
         ) : null}
 
         {tab === "learned" ? (

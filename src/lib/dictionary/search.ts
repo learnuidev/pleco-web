@@ -13,6 +13,7 @@
  */
 
 import { getDictionary, glosses, type DictionaryEntry } from "./cedict";
+import { componentCharacters } from "../hanzi";
 import { getFrequencyTable } from "./frequency";
 import { isHanText, pinyinSearchKey, pinyinToMarks } from "../pinyin";
 
@@ -233,6 +234,18 @@ function searchChinese(query: string, limit: number): { hits: SearchHit[]; segme
           if (doc.length === 1) continue;
           hits.push(toHit(doc, "contains", segment, false));
         }
+      }
+    }
+  }
+
+  // Radical and component glyphs (阝, 氵, 忄 …) are not CEDICT headwords, so the
+  // lookups above all miss. Characters are built on them though — fall back to
+  // the characters that use the glyph as a component.
+  if (hits.length === 0 && Array.from(trimmed).length === 1) {
+    for (const glyph of componentCharacters(trimmed)) {
+      for (const id of getSearchIndex().byWord.get(glyph) ?? []) {
+        const doc = getSearchIndex().docs[id];
+        if (doc.length === 1) hits.push(toHit(doc, "contains", trimmed, false));
       }
     }
   }

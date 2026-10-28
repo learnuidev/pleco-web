@@ -35,6 +35,7 @@ type Radical = {
   pinyin: string;
   strokes: number | null;
   variants: string[];
+  examples: string[];
   characterCount: number | null;
 };
 
@@ -391,48 +392,49 @@ export function BrowseView() {
         ) : null}
 
         {axis === "radicals" ? (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-2">
-            {visibleRadicals.map((radical, index) => (
-              <motion.button
-                key={radical.number}
-                type="button"
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(index, 40) * 0.006 }}
-                onClick={() => router.push(characterHref(radical.glyph))}
-                title={`${radical.glyph} ${radical.pinyin}${radical.variants.length ? ` · ${radical.variants.join(" ")}` : ""}`}
-                className="focus-halo group relative flex items-center gap-2.5 rounded-xl bg-card px-2.5 py-2 text-left shadow-hairline ring-1 ring-black/5 transition-all hover:shadow-raised hover:ring-primary/25 dark:ring-white/8"
-              >
-                <Glyph size="md" className="shrink-0">
-                  {radical.glyph}
-                </Glyph>
-                <span className="min-w-0">
-                  <span className="flex items-baseline gap-1.5">
-                    <span className="block truncate text-[11.5px] font-medium">
-                      {radical.meaning}
-                    </span>
-                    <span className="shrink-0 text-[10px] text-primary/80">
-                      {radical.pinyin.split(",")[0]}
-                    </span>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(116px,1fr))] gap-2">
+            {visibleRadicals.map((radical, index) => {
+              const forms = [radical.glyph, ...radical.variants];
+              return (
+                <motion.button
+                  key={radical.number}
+                  type="button"
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(index, 40) * 0.006 }}
+                  onClick={() => router.push(characterHref(radical.glyph))}
+                  title={`${forms.join(" ")} · ${radical.pinyin} — ${radical.meaning}${
+                    radical.examples.length > 0 ? ` · ${radical.examples.join(" ")}` : ""
+                  }`}
+                  className="focus-halo group relative flex flex-col items-center gap-0.5 rounded-xl bg-card px-2 py-2 text-center shadow-hairline ring-1 ring-black/5 transition-all hover:shadow-raised hover:ring-primary/25 dark:ring-white/8"
+                >
+                  <span className="flex items-baseline justify-center gap-1">
+                    <Glyph size="md" className="text-foreground">
+                      {radical.glyph}
+                    </Glyph>
+                    {radical.variants.length > 0 ? (
+                      <span className="glyph text-[15px] leading-none text-muted-foreground">
+                        {radical.variants.join(" ")}
+                      </span>
+                    ) : null}
                   </span>
-                  <span className="tabular flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
+                  <span className="w-full truncate text-[11.5px] font-medium">
+                    {radical.meaning}
+                  </span>
+                  <span className="tabular flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span>#{radical.number}</span>
                     {radical.strokes ? (
                       <span className="inline-flex items-center gap-0.5">
                         <Hash className="size-2.5" />
                         {radical.strokes}
                       </span>
                     ) : null}
-                    <span>#{radical.number}</span>
-                    {radical.variants.length > 0 ? (
-                      <span className="glyph truncate text-[12px] text-muted-foreground/70">
-                        {radical.variants.join(" ")}
-                      </span>
-                    ) : null}
+                    <span className="truncate text-primary/80">{radical.pinyin.split(",")[0]}</span>
                   </span>
-                </span>
-                <ArrowUpRight className="absolute right-1.5 top-1.5 size-3 text-primary/0 transition-colors group-hover:text-primary/70" />
-              </motion.button>
-            ))}
+                  <ArrowUpRight className="absolute right-1.5 top-1.5 size-3 text-primary/0 transition-colors group-hover:text-primary/70" />
+                </motion.button>
+              );
+            })}
             {visibleRadicals.length === 0 && !loading ? (
               <p className="col-span-full py-8 text-center text-[12.5px] text-muted-foreground">
                 Nothing to show for this filter.

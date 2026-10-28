@@ -89,6 +89,8 @@ export type Radical = {
   strokes: number | null;
   /** Other forms of the same radical (traditional or layout variants). */
   variants: string[];
+  /** Characters that use it, from the inventory table. */
+  examples: string[];
 };
 
 let radicalCache: Radical[] | null = null;

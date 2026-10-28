@@ -40,10 +40,11 @@ export function isReaderSubTab(value: string | null | undefined): value is Reade
 }
 
 /**
- * `/dictionary/想` · `/dictionary/想?tab=characters` · `…?tab=characters&sub=words`
+ * `/dictionary/想` · `/dictionary/想?tab=strokes` · `…?tab=characters&sub=words`
  *
- * Defaults stay out of the URL: `strokes` is the default tab and `breakdown` the
- * default sub-tab.
+ * Defaults stay out of the URL: `characters` is the default tab and `breakdown`
+ * the default sub-tab (a sub-tab always spells out `tab=characters`, since the
+ * sub-tabs only exist there).
  */
 export function entryHref(
   glyph: string,
@@ -51,8 +52,12 @@ export function entryHref(
   sub?: ReaderSubTabKey | null,
 ): string {
   const params = new URLSearchParams();
-  if (tab && tab !== "strokes") params.set("tab", tab);
-  if (tab === "characters" && sub && sub !== "breakdown") params.set("sub", sub);
+  if (tab === "characters" && sub && sub !== "breakdown") {
+    params.set("tab", "characters");
+    params.set("sub", sub);
+  } else if (tab && tab !== "characters") {
+    params.set("tab", tab);
+  }
   const query = params.toString();
   return query ? `${characterHref(glyph)}?${query}` : characterHref(glyph);
 }
@@ -72,7 +77,7 @@ export function syncEntryUrl(
 /** Query keys owned by the Browse tab. */
 export const BROWSE_PARAMS = ["tab", "view", "stroke", "sort"] as const;
 
-export type BrowseAxis = "frequency" | "strokes" | "radicals";
+export type BrowseAxis = "characters" | "radicals";
 
 export type BrowseUrlState = {
   axis: BrowseAxis;
@@ -80,12 +85,12 @@ export type BrowseUrlState = {
   chart: boolean;
   /** Stroke filter for the active axis; null = no filter. */
   stroke: number | null;
-  /** Radical ordering; the default (Kangxi number) stays out of the URL. */
-  sort: "number" | "asc" | "desc";
+  /** Characters: most/least common. Radicals: Kangxi number or stroke order. */
+  sort: "common" | "rare" | "number" | "asc" | "desc";
 };
 
 export function isBrowseAxis(value: string | null): value is BrowseAxis {
-  return value === "frequency" || value === "strokes" || value === "radicals";
+  return value === "characters" || value === "radicals";
 }
 
 /** `/browse?tab=strokes&view=chart&stroke=8&sort=asc` */
@@ -94,7 +99,7 @@ export function browseHref(state: BrowseUrlState): string {
   params.set("tab", state.axis);
   if (state.chart) params.set("view", "chart");
   if (state.stroke !== null) params.set("stroke", String(state.stroke));
-  if (state.sort !== "number") params.set("sort", state.sort);
+  if (state.sort !== "common" && state.sort !== "number") params.set("sort", state.sort);
   return `/browse?${params.toString()}`;
 }
 

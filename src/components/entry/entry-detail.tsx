@@ -29,11 +29,14 @@ import { cn } from "@/lib/utils";
 type TabKey = "strokes" | "characters" | "examples" | "details";
 
 const TABS: Array<{ key: TabKey; label: string; icon: typeof PenLine }> = [
-  { key: "strokes", label: "Strokes", icon: PenLine },
   { key: "characters", label: "Characters", icon: Layers },
+  { key: "strokes", label: "Strokes", icon: PenLine },
   { key: "examples", label: "Examples", icon: Quote },
   { key: "details", label: "Details", icon: Info },
 ];
+
+/** The tab a URL without `?tab=` opens. */
+const DEFAULT_READER_TAB: TabKey = "characters";
 
 /** Sub-tabs of the Characters pane; order is the display order. */
 const CHARACTER_SUB_TABS: Array<{ key: ReaderSubTabKey; label: string }> = [
@@ -57,7 +60,7 @@ export function EntryDetailPane() {
   const router = useRouter();
   const tabParam = searchParams.get("tab");
   const subParam = searchParams.get("sub");
-  const tab: TabKey = isReaderTab(tabParam) ? tabParam : "strokes";
+  const tab: TabKey = isReaderTab(tabParam) ? tabParam : DEFAULT_READER_TAB;
   const requestedSub: ReaderSubTabKey = isReaderSubTab(subParam) ? subParam : "breakdown";
   const subTab = detail ? activeSubTab(detail, requestedSub) : requestedSub;
 

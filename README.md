@@ -69,12 +69,16 @@ with the same data set Pleco-style apps use.
 
 **Browse**
 
-- Most frequent characters, character sets filtered by stroke count (from the
-  locally mirrored stroke data), and the full Kangxi radical inventory with
-  meaning, number and usage counts.
-- The radical grid filters by stroke count, sorts by Kangxi number (default)
-  or stroke count either way, and opens a gradient-filled stroke-distribution
-  chart (recharts) whose bars double as filters.
+Two inventories, one toolbar language:
+
+- **Characters** — the frequency-ranked corpus, filterable by stroke count,
+  ordered most-common or least-common first, with #N, pinyin and gloss on each
+  tile.
+- **Radicals** — the full Kangxi inventory with meaning, number and usage count,
+  sortable by Kangxi number or by stroke count either way.
+- Both axes open a gradient-filled stroke-distribution chart (recharts) whose
+  bars double as filters, and both keep their state in the URL
+  (`?tab=characters&view=chart&stroke=7&sort=rare`).
 - Every character and radical is a link into its own `/dictionary/:character`
   page.
 
@@ -110,7 +114,7 @@ process); every search after that is single-digit milliseconds.
 | `/dictionary/:character` | That entry in the reader |
 | `/dictionary/想?tab=characters` | The same entry with a reader tab open |
 | `/dictionary/木?tab=characters&sub=using` | The Characters tab's "Characters using 木" sub-tab |
-| `/browse` | Characters by frequency, stroke counts and the radical inventory |
+| `/browse` | Characters (by frequency, filterable by strokes) and the radical inventory |
 | `/browse?tab=strokes&view=chart&stroke=8&sort=asc` | Browse, with axis, chart, filter and sort in the URL |
 | `/text` | The text reader |
 | `/saved` | Saved words |
@@ -119,12 +123,12 @@ Every in-app route shares one shell (title bar, sidebar, status bar) from
 `(workbench)/layout.tsx`, so switching routes only swaps the content area and the
 search state survives the move.
 
-Browse (on its own `/browse` route) keeps its whole state in the query string — `tab` (`frequency`,
-`strokes`, `radicals`), `view` (`chart` when the stroke-distribution panel is
-open), `stroke` (the active stroke filter) and `sort` (`asc` / `desc`, radicals
-only) — so a chart or a filtered grid is a link you can bookmark or paste. The
-strokes and radicals axes both chart their stroke distribution, and the bars act
-as filters.
+Browse (on its own `/browse` route) keeps its whole state in the query string —
+`tab` (`characters` / `radicals`), `view` (`chart` when the stroke-distribution
+panel is open), `stroke` (the active stroke filter) and `sort` (`common` /
+`rare` for characters, `asc` / `desc` for radicals) — so a chart or a filtered
+grid is a link you can bookmark or paste. Both axes chart their stroke
+distribution, and the bars act as filters.
 
 The dictionary is one layout — sidebar, search, result list and reader — and the
 address bar simply follows what the reader shows. Selecting a result, a Recent

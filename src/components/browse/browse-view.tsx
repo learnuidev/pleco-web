@@ -8,19 +8,18 @@ import {
   ChartColumn,
   Hash,
   Loader2,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { StrokeDistribution } from "@/components/browse/stroke-distribution";
 import { Glyph } from "@/components/glyph";
-import {
-  characterHref,
-  isBrowseAxis,
-  syncBrowseUrl,
-  type BrowseAxis,
-} from "@/lib/routes";
+import { characterHref, syncBrowseUrl, type BrowseAxis } from "@/lib/routes";
 import { cn } from "@/lib/utils";
+
+type Axis = BrowseAxis;
 
 type BrowseItem = {
   character: string;
@@ -30,8 +29,6 @@ type BrowseItem = {
   strokes: number | null;
 };
 
-type Axis = BrowseAxis;
-
 type Radical = {
   number: number;
   glyph: string;
@@ -40,12 +37,17 @@ type Radical = {
   characterCount: number | null;
 };
 
+type CharacterSort = "common" | "rare";
 type RadicalSort = "number" | "asc" | "desc";
 
 const AXES: Array<{ key: Axis; label: string }> = [
-  { key: "frequency", label: "Most common" },
-  { key: "strokes", label: "By strokes" },
+  { key: "characters", label: "Characters" },
   { key: "radicals", label: "Radicals" },
+];
+
+const CHARACTER_SORTS: Array<{ key: CharacterSort; icon: typeof Hash; label: string }> = [
+  { key: "common", icon: TrendingUp, label: "Most common" },
+  { key: "rare", icon: TrendingDown, label: "Least common" },
 ];
 
 const RADICAL_SORTS: Array<{ key: RadicalSort; icon: typeof Hash; label: string; title: string }> = [
@@ -54,11 +56,9 @@ const RADICAL_SORTS: Array<{ key: RadicalSort; icon: typeof Hash; label: string;
   { key: "desc", icon: ArrowDownWideNarrow, label: "Most strokes", title: "Sort by strokes, descending" },
 ];
 
-const DEFAULT_STROKES_FILTER = 6;
-
 /** A usable stroke count from the URL, or null when the parameter is junk. */
 function strokeParam(raw: string | null): number | null {
-  if (raw === null) return null;
+  if (raw === null || raw === "") return null;
   const value = Number(raw);
   return Number.isInteger(value) && value >= 1 && value <= 64 ? value : null;
 }
@@ -85,6 +85,67 @@ function FilterChip({
     >
       {children}
     </button>
+  );
+}
+
+/** The three-way "All + every stroke count" row both axes use. */
+function StrokeFilterRow({
+  keys,
+  active,
+  onSelect,
+}: {
+  keys: number[];
+  active: number | null;
+  onSelect: (value: number | null) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <FilterChip active={active === null} onClick={() => onSelect(null)}>
+        All
+      </FilterChip>
+      {keys.map((count) => (
+        <FilterChip key={count} active={active === count} onClick={() => onSelect(count)}>
+          {count}
+        </FilterChip>
+      ))}
+    </div>
+  );
+}
+
+function SortPill<T extends string>({
+  options,
+  active,
+  onSelect,
+}: {
+  options: Array<{ key: T; icon: typeof Hash; label: string; title?: string }>;
+  active: T;
+  onSelect: (key: T) => void;
+}) {
+  return (
+    <div className="material hairline-ring flex items-center gap-0.5 rounded-full p-0.5">
+      {options.map((option) => {
+        const isActive = active === option.key;
+        const Icon = option.icon;
+        return (
+          <button
+            key={option.key}
+            type="button"
+            title={option.title ?? option.label}
+            aria-label={option.label}
+            aria-pressed={isActive}
+            onClick={() => onSelect(option.key)}
+            className={cn(
+              "focus-halo rounded-full px-1.5 py-1 transition-colors",
+              isActive
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Icon className="size-3.5" />
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -115,12 +176,16 @@ function DistributionToggle({
 }
 
 /**
- * Browse view: three axes over the same corpus — corpus frequency, stroke count
- * (from the locally mirrored stroke data) and the Kangxi radical inventory.
+ * Browse view: two inventories over the same corpus.
  *
- * The strokes and radicals axes both offer a stroke-distribution chart whose
- * bars double as filters, radical sorting, and — because the whole state lives in
- * the URL (`?tab=strokes&view=chart&stroke=8`) — links you can share or bookmark.
+ * **Characters** — the frequency-ranked characters, filterable by stroke count,
+ * ordered most- or least-common first, with a stroke-distribution chart whose
+ * bars act as filters.
+ *
+ * **Radicals** — the Kangxi inventory, with the same filter + chart moves plus
+ * sorting by radical number or stroke count.
+ *
+ * Both share `?tab=…&view=chart&stroke=…&sort=…` so a view is a link.
  */
 export function BrowseView() {
   const router = useRouter();
@@ -128,13 +193,16 @@ export function BrowseView() {
 
   const [axis, setAxis] = useState<Axis>(() => {
     const tab = params.get("tab");
-    return isBrowseAxis(tab) ? tab : "frequency";
+    return tab === "radicals" || tab === "characters" ? tab : "characters";
   });
   const [items, setItems] = useState<BrowseItem[]>([]);
   const [radicals, setRadicals] = useState<Radical[]>([]);
   const [histogram, setHistogram] = useState<Record<number, number>>({});
-  const [strokeFilter, setStrokeFilter] = useState<number>(
-    () => strokeParam(params.get("stroke")) ?? DEFAULT_STROKES_FILTER,
+  const [charStrokeFilter, setCharStrokeFilter] = useState<number | null>(() =>
+    params.get("tab") !== "radicals" ? strokeParam(params.get("stroke")) : null,
+  );
+  const [charSort, setCharSort] = useState<CharacterSort>(() =>
+    params.get("sort") === "rare" ? "rare" : "common",
   );
   const [radicalStrokeFilter, setRadicalStrokeFilter] = useState<number | null>(() =>
     params.get("tab") === "radicals" ? strokeParam(params.get("stroke")) : null,
@@ -147,29 +215,23 @@ export function BrowseView() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(
-    async (nextAxis: Axis, strokes: number) => {
+    async (nextAxis: Axis, stroke: number | null, sort: CharacterSort) => {
       setLoading(true);
       try {
         if (nextAxis === "radicals") {
           const response = await fetch("/api/browse?mode=radicals");
           const data = (await response.json()) as { radicals: Radical[] };
           setRadicals(data.radicals);
-        } else if (nextAxis === "strokes") {
-          const response = await fetch(`/api/browse?mode=strokes&value=${strokes}`);
+        } else {
+          const search = new URLSearchParams({ mode: "characters", sort });
+          if (stroke !== null) search.set("stroke", String(stroke));
+          const response = await fetch(`/api/browse?${search.toString()}`);
           const data = (await response.json()) as {
             items: BrowseItem[];
             strokeHistogram: Record<number, number>;
           };
           setItems(data.items);
           setHistogram(data.strokeHistogram);
-        } else {
-          const response = await fetch("/api/browse?mode=frequency");
-          const data = (await response.json()) as {
-            items: BrowseItem[];
-            axes: { strokeHistogram: Record<number, number> };
-          };
-          setItems(data.items);
-          setHistogram(data.axes?.strokeHistogram ?? {});
         }
       } catch {
         setItems([]);
@@ -181,18 +243,18 @@ export function BrowseView() {
   );
 
   useEffect(() => {
-    void load(axis, strokeFilter);
-  }, [axis, strokeFilter, load]);
+    void load(axis, charStrokeFilter, charSort);
+  }, [axis, charStrokeFilter, charSort, load]);
 
   /** Mirror the axis, chart, filter and sort into `?tab=…&view=…&stroke=…`. */
   useEffect(() => {
     syncBrowseUrl({
       axis,
       chart: showChart,
-      stroke: axis === "radicals" ? radicalStrokeFilter : axis === "strokes" ? strokeFilter : null,
-      sort: axis === "radicals" ? radicalSort : "number",
+      stroke: axis === "radicals" ? radicalStrokeFilter : charStrokeFilter,
+      sort: axis === "radicals" ? radicalSort : charSort,
     });
-  }, [axis, showChart, strokeFilter, radicalStrokeFilter, radicalSort]);
+  }, [axis, showChart, charStrokeFilter, charSort, radicalStrokeFilter, radicalSort]);
 
   const strokeKeys = useMemo(
     () =>
@@ -245,8 +307,6 @@ export function BrowseView() {
     });
   }, [radicals, radicalStrokeFilter, radicalSort]);
 
-  const chartOpen = showChart && axis !== "frequency";
-
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="hairline-b flex flex-wrap items-center gap-2 px-4 py-2">
@@ -276,89 +336,39 @@ export function BrowseView() {
           })}
         </div>
 
-        {axis === "strokes" ? (
+        {axis === "characters" ? (
           <>
-            <div className="flex flex-wrap items-center gap-1">
-              {strokeKeys.map((count) => (
-                <FilterChip
-                  key={count}
-                  active={strokeFilter === count}
-                  onClick={() => setStrokeFilter(count)}
-                >
-                  {count}
-                </FilterChip>
-              ))}
-            </div>
-
+            <StrokeFilterRow
+              keys={strokeKeys}
+              active={charStrokeFilter}
+              onSelect={setCharStrokeFilter}
+            />
             <div className="ml-auto flex items-center gap-1.5">
-              <DistributionToggle open={chartOpen} onToggle={() => setShowChart((open) => !open)} />
+              <SortPill options={CHARACTER_SORTS} active={charSort} onSelect={setCharSort} />
+              <DistributionToggle open={showChart} onToggle={() => setShowChart((open) => !open)} />
             </div>
           </>
         ) : null}
 
         {axis === "radicals" ? (
           <>
-            <div className="flex flex-wrap items-center gap-1">
-              <FilterChip
-                active={radicalStrokeFilter === null}
-                onClick={() => setRadicalStrokeFilter(null)}
-              >
-                All
-              </FilterChip>
-              {radicalStrokeKeys.map((count) => (
-                <FilterChip
-                  key={count}
-                  active={radicalStrokeFilter === count}
-                  onClick={() => setRadicalStrokeFilter(count)}
-                >
-                  {count}
-                </FilterChip>
-              ))}
-            </div>
-
+            <StrokeFilterRow
+              keys={radicalStrokeKeys}
+              active={radicalStrokeFilter}
+              onSelect={setRadicalStrokeFilter}
+            />
             <div className="ml-auto flex items-center gap-1.5">
-              <div className="material hairline-ring flex items-center gap-0.5 rounded-full p-0.5">
-                {RADICAL_SORTS.map((option) => {
-                  const active = radicalSort === option.key;
-                  const Icon = option.icon;
-                  return (
-                    <button
-                      key={option.key}
-                      type="button"
-                      title={option.title}
-                      aria-label={option.label}
-                      aria-pressed={active}
-                      onClick={() => setRadicalSort(option.key)}
-                      className={cn(
-                        "focus-halo rounded-full px-1.5 py-1 transition-colors",
-                        active
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      <Icon className="size-3.5" />
-                    </button>
-                  );
-                })}
-              </div>
-
-              <DistributionToggle open={chartOpen} onToggle={() => setShowChart((open) => !open)} />
+              <SortPill options={RADICAL_SORTS} active={radicalSort} onSelect={setRadicalSort} />
+              <DistributionToggle open={showChart} onToggle={() => setShowChart((open) => !open)} />
             </div>
           </>
         ) : null}
 
-        {loading ? (
-          <Loader2
-            className={cn(
-              "size-3.5 animate-spin text-muted-foreground",
-              axis === "frequency" && "ml-auto",
-            )}
-          />
-        ) : null}
+        {loading ? <Loader2 className="size-3.5 animate-spin text-muted-foreground" /> : null}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        {chartOpen ? (
+        {showChart ? (
           <div className="mb-4">
             {axis === "radicals" ? (
               <StrokeDistribution
@@ -370,10 +380,8 @@ export function BrowseView() {
             ) : (
               <StrokeDistribution
                 data={characterChartData}
-                activeStroke={strokeFilter}
-                onSelect={(value) => {
-                  if (value !== null) setStrokeFilter(value);
-                }}
+                activeStroke={charStrokeFilter}
+                onSelect={setCharStrokeFilter}
                 unit="character"
                 title="Characters by stroke count"
               />

@@ -65,7 +65,7 @@ type HanziModule = {
   getCharacterFrequency: (character: string) => FrequencyInfo | null;
   determinePhoneticRegularity: (input: string | DecompositionResult) => PhoneticRegularity | null;
   getRadicalMeaning: (radical: string) => string;
-  getCharactersWithComponent: (component: string) => string[];
+  getCharactersWithComponent: (component: string) => string | string[];
   getPhoneticSet: (character: string) => unknown;
   getCharacterInFrequencyListByPosition: (position: number) => FrequencyInfo | null;
 };
@@ -163,13 +163,23 @@ export function radicalMeaning(glyph: string): string {
 }
 
 export function componentCharacters(component: string): string[] {
-  return memoised(`component:${component}`, () => {
-    try {
-      return (getHanzi().getCharactersWithComponent(component) ?? []).slice(0, 120);
-    } catch {
-      return [];
-    }
-  });
+  // HanziJS answers "<component> not found" (a *string*) when it has no reverse
+  // index entry, so the result has to be type-checked — treating that string as
+  // a list crashed the character card with `examples.slice(...).map is not a
+  // function`. Stale memo entries from an older build are discarded on read.
+  const cacheKey = `component:${component}`;
+  const store = memo();
+  const cached = store.get(cacheKey);
+  if (Array.isArray(cached)) return cached as string[];
+
+  try {
+    const value = getHanzi().getCharactersWithComponent(component);
+    const list = Array.isArray(value) ? value.slice(0, 120) : [];
+    store.set(cacheKey, list);
+    return list;
+  } catch {
+    return [];
+  }
 }
 
 export function readings(character: string): string[] {

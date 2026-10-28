@@ -45,6 +45,12 @@ type UnlockCharacter = CharacterSummary & {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const raw = searchParams.get("learned") ?? "";
+  /** Optional: restrict the returned partial list to one percentage bucket. */
+  const rawBucket = searchParams.get("partialBucket");
+  const partialBucket =
+    rawBucket !== null && rawBucket !== "" && Number.isInteger(Number(rawBucket))
+      ? Math.min(90, Math.max(0, Number(rawBucket)))
+      : null;
   const learned = Array.from(
     new Set(
       raw
@@ -131,6 +137,15 @@ export async function GET(request: Request) {
   full.sort(byRank);
   partial.sort((a, b) => b.percent - a.percent || byRank(a, b));
 
+  // A bucket filter narrows the returned list *after* the histogram is built, so
+  // the chart (which counts every unlock) and the grid always agree.
+  const partialForResponse =
+    partialBucket === null
+      ? partial
+      : partial.filter(
+          (unlock) => Math.min(90, Math.floor(unlock.percent / 10) * 10) === partialBucket,
+        );
+
   // Time machine: replay the learned glyphs in the order they were learned and
   // report what each step unlocked or moved forward.
   if (searchParams.get("timeline") === "1") {
@@ -184,11 +199,16 @@ export async function GET(request: Request) {
   // Distribution of every unlock by how much of it is learned, plus the overall
   // stats — computed before the lists are capped.
   const histogram: Record<number, number> = {};
+  const partialHistogram: Record<number, number> = {};
   let percentSum = 0;
   for (const unlock of [...full, ...partial]) {
     const bucket = unlock.percent >= 100 ? 100 : Math.min(90, Math.floor(unlock.percent / 10) * 10);
     histogram[bucket] = (histogram[bucket] ?? 0) + 1;
     percentSum += unlock.percent;
+  }
+  for (const unlock of partial) {
+    const bucket = Math.min(90, Math.floor(unlock.percent / 10) * 10);
+    partialHistogram[bucket] = (partialHistogram[bucket] ?? 0) + 1;
   }
   const totalUnlocks = full.length + partial.length;
 
@@ -196,13 +216,15 @@ export async function GET(request: Request) {
     {
       learned: learned.map(summary),
       full: full.slice(0, MAX_PER_SECTION),
-      partial: partial.slice(0, MAX_PER_SECTION),
+      // Every partly-unlocked character is returned — the tab is the full list.
+      partial: partialForResponse,
       counts: {
         learned: learned.length,
         full: full.length,
         partial: partial.length,
       },
       histogram,
+      partialHistogram,
       averagePercent: totalUnlocks > 0 ? Math.round(percentSum / totalUnlocks) : 0,
     },
     { headers: { "Cache-Control": "no-store" } },

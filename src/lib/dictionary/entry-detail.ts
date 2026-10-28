@@ -158,15 +158,18 @@ function buildContains(entry: DictionaryEntry): Array<{ entry: DictionaryEntry; 
  * snapshot, so results are memoised. The map hangs off `globalThis` because each
  * route handler is its own module graph.
  */
+// Cache name carries a version: detail payloads memoised by an older build can
+// hold data shaped by the old hanzi bridge (e.g. a string where a component's
+// examples list should be), and this cache lives on globalThis across reloads.
 const globalForDetailCache = globalThis as unknown as {
-  __plecoEntryDetailCache?: Map<number, EntryDetail>;
+  __plecoEntryDetailCacheV2?: Map<number, EntryDetail>;
 };
 
 function detailCache(): Map<number, EntryDetail> {
-  if (!globalForDetailCache.__plecoEntryDetailCache) {
-    globalForDetailCache.__plecoEntryDetailCache = new Map();
+  if (!globalForDetailCache.__plecoEntryDetailCacheV2) {
+    globalForDetailCache.__plecoEntryDetailCacheV2 = new Map();
   }
-  return globalForDetailCache.__plecoEntryDetailCache;
+  return globalForDetailCache.__plecoEntryDetailCacheV2;
 }
 
 export function buildEntryDetail(id: number): EntryDetail | null {

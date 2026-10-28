@@ -113,6 +113,11 @@ Two inventories, one toolbar language (Radicals opens first):
   character bucketed by share learned — accent colour for partly unlocked,
   success colour for fully unlocked — plus the characters closest to being
   unlocked.
+- **Partly unlocked** lists *every* partly-unlocked character (the list is not
+  truncated), and carries its own histogram (`partialHistogram`): bars are the
+  0–10…90–100% buckets and clicking one fetches that whole bucket from the server
+  (`&partialBucket=`), so the cards always match the bar's count — click again or
+  Clear filter to reset.
 - **Time machine** is a toggle, not a tab: flip it on and a video-player bar docks
   at the bottom of the page with Play/Pause, step controls, a progress slider and
   the running counts. It replays your learned glyphs in the order they were

@@ -29,10 +29,26 @@ function BucketTooltip({ active, payload }: { active?: boolean; payload?: Toolti
  * it is learned. Partial buckets are the accent colour, the 100% bucket is the
  * success colour, so "close to done" and "done" read differently at a glance.
  */
-export function LearningProgressChart({ histogram }: { histogram: Record<number, number> }) {
+export function LearningProgressChart({
+  histogram,
+  title = "Learning progress",
+  subtitle,
+  buckets = Array.from({ length: 11 }, (_, index) => index * 10),
+  selected = null,
+  onSelect,
+}: {
+  histogram: Record<number, number>;
+  title?: string;
+  subtitle?: string;
+  /** Which percentage buckets to show (e.g. 0…90 for partly unlocked). */
+  buckets?: number[];
+  /** The currently filtered bucket, highlighted. */
+  selected?: number | null;
+  /** When given, bars are filters: clicking one selects (or clears) its bucket. */
+  onSelect?: (percent: number) => void;
+}) {
   const gradientId = useId().replace(/[^a-zA-Z0-9]/g, "");
 
-  const buckets = Array.from({ length: 11 }, (_, index) => index * 10);
   const data: Bucket[] = buckets.map((percent) => ({
     percent,
     count: histogram[percent] ?? 0,
@@ -43,9 +59,9 @@ export function LearningProgressChart({ histogram }: { histogram: Record<number,
     <div className="material hairline-ring overflow-hidden rounded-2xl">
       <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 pb-1 pt-3">
         <div>
-          <p className="text-[12px] font-semibold tracking-tight">Learning progress</p>
+          <p className="text-[12px] font-semibold tracking-tight">{title}</p>
           <p className="tabular text-[10.5px] text-muted-foreground">
-            {total} unlocked {total === 1 ? "character" : "characters"} · by share learned
+            {subtitle ?? `${total} unlocked ${total === 1 ? "character" : "characters"} · by share learned`}
           </p>
         </div>
         <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
@@ -72,6 +88,10 @@ export function LearningProgressChart({ histogram }: { histogram: Record<number,
                 <stop offset="0%" stopColor="var(--success)" stopOpacity={1} />
                 <stop offset="100%" stopColor="var(--success)" stopOpacity={0.45} />
               </linearGradient>
+              <linearGradient id={`learn-hot-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--brand)" stopOpacity={1} />
+                <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0.8} />
+              </linearGradient>
             </defs>
             <CartesianGrid vertical={false} strokeDasharray="3 6" stroke="var(--border)" strokeOpacity={0.7} />
             <XAxis
@@ -84,17 +104,24 @@ export function LearningProgressChart({ histogram }: { histogram: Record<number,
             />
             <Tooltip cursor={{ fill: "var(--foreground)", fillOpacity: 0.04 }} content={<BucketTooltip />} />
             <Bar dataKey="count" radius={[5, 5, 0, 0]} maxBarSize={26} isAnimationActive={false}>
-              {data.map((bucket) => (
-                <Cell
-                  key={bucket.percent}
-                  fill={
-                    bucket.percent === 100
-                      ? `url(#learn-full-${gradientId})`
-                      : `url(#learn-partial-${gradientId})`
-                  }
-                  fillOpacity={bucket.count === 0 ? 0.2 : 1}
-                />
-              ))}
+              {data.map((bucket) => {
+                const isActive = bucket.percent === selected;
+                return (
+                  <Cell
+                    key={bucket.percent}
+                    fill={
+                      isActive
+                        ? `url(#learn-hot-${gradientId})`
+                        : bucket.percent === 100
+                          ? `url(#learn-full-${gradientId})`
+                          : `url(#learn-partial-${gradientId})`
+                    }
+                    fillOpacity={bucket.count === 0 ? 0.2 : 1}
+                    cursor={onSelect ? "pointer" : undefined}
+                    onClick={onSelect ? () => onSelect(bucket.percent) : undefined}
+                  />
+                );
+              })}
               <LabelList
                 dataKey="count"
                 position="top"

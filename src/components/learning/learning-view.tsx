@@ -44,6 +44,8 @@ type LearningPayload = {
   counts: { learned: number; full: number; partial: number };
   /** Unlock counts by learned-percentage bucket (0,10,…,100). */
   histogram: Record<number, number>;
+  /** Partly-unlocked counts by bucket (0,10,…,90). */
+  partialHistogram: Record<number, number>;
   averagePercent: number;
 };
 
@@ -54,12 +56,23 @@ const LEARNING_TAB_LABELS: Array<{ key: LearningTabKey; label: string; icon: typ
   { key: "partial", label: "Partly unlocked", icon: Unlock },
 ];
 
+/** Percentages 0…100 in tens — the chart's buckets. */
+const PERCENT_BUCKETS = Array.from({ length: 11 }, (_, index) => index * 10);
+/** Partly-unlocked buckets: 0…90 (100 is "fully unlocked"). */
+const PARTIAL_BUCKETS = PERCENT_BUCKETS.slice(0, 10);
+
+const bucketOf = (percent: number) => Math.min(90, Math.floor(percent / 10) * 10);
+
+/** "20–30%" — the human label for a bucket. */
+const bucketLabel = (bucket: number) => `${bucket}–${bucket + 10}%`;
+
 const EMPTY: LearningPayload = {
   learned: [],
   full: [],
   partial: [],
   counts: { learned: 0, full: 0, partial: 0 },
   histogram: {},
+  partialHistogram: {},
   averagePercent: 0,
 };
 
@@ -136,6 +149,7 @@ export function LearningView() {
   }, [replay, playing, events.length]);
   const [payload, setPayload] = useState<LearningPayload>(EMPTY);
   const [loading, setLoading] = useState(false);
+  const [partialFilter, setPartialFilter] = useState<number | null>(null);
 
   const learnedKey = effectiveLearned.join(",");
 
@@ -146,7 +160,8 @@ export function LearningView() {
     }
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/learning?learned=${encodeURIComponent(learnedKey)}`)
+    const bucketParam = partialFilter === null ? "" : `&partialBucket=${partialFilter}`;
+    fetch(`/api/learning?learned=${encodeURIComponent(learnedKey)}${bucketParam}`)
       .then((response) => (response.ok ? response.json() : EMPTY))
       .then((data: LearningPayload) => {
         if (!cancelled) setPayload(data ?? EMPTY);
@@ -160,9 +175,10 @@ export function LearningView() {
     return () => {
       cancelled = true;
     };
-  }, [learnedKey]);
+  }, [learnedKey, partialFilter]);
 
   const total = state.learned.length;
+  const visiblePartial = payload.partial;
 
   if (total === 0) {
     return (
@@ -374,21 +390,54 @@ export function LearningView() {
         ) : null}
 
         {tab === "partial" ? (
-          <section>
-            <p className="mb-2 text-[10.5px] text-muted-foreground">
+          <section className="space-y-3">
+            <p className="text-[10.5px] text-muted-foreground">
               Some components learned — finish the highlighted ones to unlock the character.
             </p>
-            {payload.partial.length > 0 ? (
-              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                {payload.partial.map((unlock) => (
-                  <PartialCard key={unlock.glyph} unlock={unlock} />
-                ))}
+
+            {payload.counts.partial > 0 ? (
+              <LearningProgressChart
+                histogram={payload.partialHistogram}
+                title="Partly unlocked by progress"
+                subtitle={`${payload.counts.partial} characters in progress · click a bar to filter`}
+                buckets={PARTIAL_BUCKETS}
+                selected={partialFilter}
+                onSelect={(bucket) =>
+                  setPartialFilter((current) => (current === bucket ? null : bucket))
+                }
+              />
+            ) : null}
+
+            {partialFilter !== null ? (
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10.5px] text-primary">
+                  {bucketLabel(partialFilter)} learned · {payload.partialHistogram[partialFilter] ?? 0}
+                </span>
+                <span>
+                  showing {payload.partial.length}
+                  {payload.partial.length < (payload.partialHistogram[partialFilter] ?? 0)
+                    ? ` of ${payload.partialHistogram[partialFilter]}`
+                    : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPartialFilter(null)}
+                  className="focus-halo rounded-full bg-foreground/6 px-2 py-0.5 text-[10.5px] transition-colors hover:bg-foreground/12 hover:text-foreground"
+                >
+                  Clear filter
+                </button>
               </div>
-            ) : (
-              <EmptyNote>
-                {loading ? "Checking your components…" : "No half-finished characters yet."}
-              </EmptyNote>
-            )}
+            ) : null}
+
+            <PartialGrid
+              items={visiblePartial}
+              loading={loading}
+              empty={
+                partialFilter !== null
+                  ? `No loaded characters at ${bucketLabel(partialFilter)} learned.`
+                  : undefined
+              }
+            />
           </section>
         ) : null}
       </div>
@@ -512,6 +561,31 @@ function UnlockRow({ unlock }: { unlock: LearnUnlock }) {
         100%
       </span>
     </button>
+  );
+}
+
+function PartialGrid({
+  items,
+  loading,
+  empty,
+}: {
+  items: LearnUnlock[];
+  loading: boolean;
+  empty?: string;
+}) {
+  if (items.length === 0) {
+    return (
+      <EmptyNote>
+        {empty ?? (loading ? "Checking your components…" : "No half-finished characters yet.")}
+      </EmptyNote>
+    );
+  }
+  return (
+    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+      {items.map((unlock) => (
+        <PartialCard key={unlock.glyph} unlock={unlock} />
+      ))}
+    </div>
   );
 }
 

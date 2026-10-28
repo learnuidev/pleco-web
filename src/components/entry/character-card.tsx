@@ -177,9 +177,9 @@ export function CharacterCard({
                       </p>
                     ) : null}
                   </div>
-                  {component.examples.length > 0 ? (
+                  {componentExamples(component).length > 0 ? (
                     <div className="hidden shrink-0 flex-wrap justify-end gap-0.5 sm:flex">
-                      {component.examples.slice(0, 5).map((example) => (
+                      {componentExamples(component).slice(0, 5).map((example) => (
                         <button
                           key={example}
                           type="button"
@@ -284,6 +284,11 @@ function frequencyBarPercent(rank: number): number {
   const MAX_RANK = 9933;
   const clamped = Math.min(Math.max(rank, 1), MAX_RANK);
   return Math.max(4, 100 - (Math.log10(clamped) / Math.log10(MAX_RANK)) * 100);
+}
+
+/** `examples` is a list in the payload; guard against an older cached shape. */
+function componentExamples(component: CharacterInfo["components"][number]): string[] {
+  return Array.isArray(component.examples) ? component.examples : [];
 }
 
 function Chip({

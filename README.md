@@ -88,6 +88,12 @@ Two inventories, one toolbar language (Radicals opens first):
 - Both axes open a gradient-filled stroke-distribution chart (recharts) whose
   bars double as filters, and both keep their state in the URL
   (`?tab=characters&view=grid&stroke=7&sort=rare`, and `view=chart` is the default).
+- **Recommended** sort (`sort=recommended`) answers "what should I learn next": for
+  characters it orders by learned coverage of their components (highest first),
+  breaking ties by the fewest unlearned components and then corpus rank; for
+  primitives and radicals it puts unlearned components first, most-usable
+  (most characters) before the rest. It reads the learned set from the workbench
+  and shows each tile's badge (`33%` coverage, or `learned`).
 - Every character and radical is a link into its own `/dictionary/:character`
   page.
 
@@ -144,9 +150,10 @@ search state survives the move.
 
 Browse (on its own `/browse` route) keeps its whole state in the query string —
 `tab` (`characters` / `radicals`), `view` (`grid` when the stroke-distribution
-panel is closed; it is open by default), `stroke` (the active stroke filter) and `sort` (`common` /
-`rare` for characters, `asc` / `desc` for radicals) — so a chart or a filtered
-grid is a link you can bookmark or paste. Both axes chart their stroke
+panel is closed; it is open by default), `stroke` (the active stroke filter) and `sort` (`common` / `rare` /
+`recommended` for characters, `usage` / `recommended` for primitives, `number` /
+`asc` / `desc` / `recommended` for radicals) — so a chart or a filtered grid is a
+link you can bookmark or paste. Both axes chart their stroke
 distribution, and the bars act as filters.
 
 A radical's **Characters using** sub-tab groups its family into **Popular** (Jun Da

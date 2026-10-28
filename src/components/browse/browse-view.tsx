@@ -11,10 +11,12 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { StrokeDistribution } from "@/components/browse/stroke-distribution";
 import { Glyph } from "@/components/glyph";
+import { useWorkbench } from "@/components/workbench/state";
 import { characterHref, isBrowseAxis, syncBrowseUrl, type BrowseAxis } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +28,10 @@ type BrowseItem = {
   meaning: string;
   rank: number | null;
   strokes: number | null;
+  /** Learned coverage of the character's components (recommended sort). */
+  coverage?: number | null;
+  /** Unlearned components left (recommended sort). */
+  missing?: number | null;
 };
 
 /** A Han-character primitive: a building block HanziJS decomposition stops at. */
@@ -36,6 +42,7 @@ type PrimitiveForm = {
   pinyin: string;
   strokes: number | null;
   characterCount: number;
+  learned: boolean;
 };
 
 /** One browsable form of a radical: the canonical glyph or one of its variants. */
@@ -49,11 +56,12 @@ type RadicalForm = {
   isPrimary: boolean;
   characterCount: number | null;
   examples: string[];
+  learned: boolean;
 };
 
-type CharacterSort = "common" | "rare";
-type RadicalSort = "number" | "asc" | "desc";
-type PrimitiveSort = "usage" | "asc" | "desc";
+type CharacterSort = "common" | "rare" | "recommended";
+type RadicalSort = "number" | "asc" | "desc" | "recommended";
+type PrimitiveSort = "usage" | "asc" | "desc" | "recommended";
 
 const AXES: Array<{ key: Axis; label: string }> = [
   { key: "radicals", label: "Radicals" },
@@ -64,18 +72,31 @@ const AXES: Array<{ key: Axis; label: string }> = [
 const CHARACTER_SORTS: Array<{ key: CharacterSort; icon: typeof Hash; label: string }> = [
   { key: "common", icon: TrendingUp, label: "Most common" },
   { key: "rare", icon: TrendingDown, label: "Least common" },
+  { key: "recommended", icon: Sparkles, label: "Recommended" },
 ];
 
 const RADICAL_SORTS: Array<{ key: RadicalSort; icon: typeof Hash; label: string; title: string }> = [
   { key: "number", icon: Hash, label: "Kangxi number", title: "Kangxi radical number" },
   { key: "asc", icon: ArrowUpNarrowWide, label: "Fewest strokes", title: "Sort by strokes, ascending" },
   { key: "desc", icon: ArrowDownWideNarrow, label: "Most strokes", title: "Sort by strokes, descending" },
+  {
+    key: "recommended",
+    icon: Sparkles,
+    label: "Recommended",
+    title: "Unlearned radicals that unlock the most characters first",
+  },
 ];
 
 const PRIMITIVE_SORTS: Array<{ key: PrimitiveSort; icon: typeof Hash; label: string; title: string }> = [
   { key: "usage", icon: Hash, label: "Most used", title: "Sort by how many characters use it" },
   { key: "asc", icon: ArrowUpNarrowWide, label: "Fewest strokes", title: "Sort by strokes, ascending" },
   { key: "desc", icon: ArrowDownWideNarrow, label: "Most strokes", title: "Sort by strokes, descending" },
+  {
+    key: "recommended",
+    icon: Sparkles,
+    label: "Recommended",
+    title: "Unlearned primitives that unlock the most characters first",
+  },
 ];
 
 /** A usable stroke count from the URL, or null when the parameter is junk. */
@@ -214,6 +235,8 @@ function DistributionToggle({
 export function BrowseView() {
   const router = useRouter();
   const params = useSearchParams();
+  const { state } = useWorkbench();
+  const learnedKey = state.learned.join(",");
 
   const [axis, setAxis] = useState<Axis>(() => {
     const tab = params.get("tab");
@@ -226,9 +249,10 @@ export function BrowseView() {
   const [charStrokeFilter, setCharStrokeFilter] = useState<number | null>(() =>
     params.get("tab") === "characters" ? strokeParam(params.get("stroke")) : null,
   );
-  const [charSort, setCharSort] = useState<CharacterSort>(() =>
-    params.get("sort") === "rare" ? "rare" : "common",
-  );
+  const [charSort, setCharSort] = useState<CharacterSort>(() => {
+    const sort = params.get("sort");
+    return sort === "rare" || sort === "recommended" ? sort : "common";
+  });
   const [radicalStrokeFilter, setRadicalStrokeFilter] = useState<number | null>(() =>
     params.get("tab") === "characters" || params.get("tab") === "primitives"
       ? null
@@ -239,31 +263,36 @@ export function BrowseView() {
   );
   const [primitiveSort, setPrimitiveSort] = useState<PrimitiveSort>(() => {
     const sort = params.get("sort");
-    return sort === "asc" || sort === "desc" ? sort : "usage";
+    return sort === "asc" || sort === "desc" || sort === "recommended" ? sort : "usage";
   });
   const [radicalSort, setRadicalSort] = useState<RadicalSort>(() => {
     const sort = params.get("sort");
-    return sort === "asc" || sort === "desc" ? sort : "number";
+    return sort === "asc" || sort === "desc" || sort === "recommended" ? sort : "number";
   });
   // The distribution chart is the default view; `?view=grid` turns it off.
   const [showChart, setShowChart] = useState<boolean>(() => params.get("view") !== "grid");
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(
-    async (nextAxis: Axis, stroke: number | null, sort: CharacterSort) => {
+    async (nextAxis: Axis, stroke: number | null, sort: CharacterSort, learned: string) => {
       setLoading(true);
       try {
         if (nextAxis === "radicals") {
-          const response = await fetch("/api/browse?mode=radicals");
+          const response = await fetch(
+            `/api/browse?mode=radicals${learned ? `&learned=${encodeURIComponent(learned)}` : ""}`,
+          );
           const data = (await response.json()) as { forms: RadicalForm[] };
           setRadicalForms(data.forms);
         } else if (nextAxis === "primitives") {
-          const response = await fetch("/api/browse?mode=primitives");
+          const response = await fetch(
+            `/api/browse?mode=primitives${learned ? `&learned=${encodeURIComponent(learned)}` : ""}`,
+          );
           const data = (await response.json()) as { primitives: PrimitiveForm[] };
           setPrimitives(data.primitives);
         } else {
           const search = new URLSearchParams({ mode: "characters", sort });
           if (stroke !== null) search.set("stroke", String(stroke));
+          if (learned) search.set("learned", learned);
           const response = await fetch(`/api/browse?${search.toString()}`);
           const data = (await response.json()) as {
             items: BrowseItem[];
@@ -282,8 +311,8 @@ export function BrowseView() {
   );
 
   useEffect(() => {
-    void load(axis, charStrokeFilter, charSort);
-  }, [axis, charStrokeFilter, charSort, load]);
+    void load(axis, charStrokeFilter, charSort, learnedKey);
+  }, [axis, charStrokeFilter, charSort, learnedKey, load]);
 
   /** Mirror the axis, chart, filter and sort into `?tab=…&view=…&stroke=…`. */
   useEffect(() => {
@@ -362,7 +391,15 @@ export function BrowseView() {
         ? primitives
         : primitives.filter((primitive) => primitive.strokes === primitiveStrokeFilter);
     const sorted = [...filtered];
-    if (primitiveSort === "usage") {
+    if (primitiveSort === "recommended") {
+      // Unlearned first, and among those the one that unlocks the most characters.
+      sorted.sort(
+        (a, b) =>
+          Number(a.learned) - Number(b.learned) ||
+          b.characterCount - a.characterCount ||
+          (a.strokes ?? 99) - (b.strokes ?? 99),
+      );
+    } else if (primitiveSort === "usage") {
       sorted.sort((a, b) => b.characterCount - a.characterCount || (a.strokes ?? 99) - (b.strokes ?? 99));
     } else {
       sorted.sort((a, b) => {
@@ -400,6 +437,15 @@ export function BrowseView() {
       // canonical glyph before its variants, radicals in Kangxi order
       return [...filtered].sort(
         (a, b) => a.number - b.number || Number(b.isPrimary) - Number(a.isPrimary),
+      );
+    }
+    if (radicalSort === "recommended") {
+      // Unlearned radicals first, most-usable (most characters) before the rest.
+      return [...filtered].sort(
+        (a, b) =>
+          Number(a.learned) - Number(b.learned) ||
+          (b.characterCount ?? 0) - (a.characterCount ?? 0) ||
+          (a.strokes ?? 99) - (b.strokes ?? 99),
       );
     }
     return [...filtered].sort((a, b) => {
@@ -549,6 +595,11 @@ export function BrowseView() {
                     </span>
                   ) : null}
                   <span>in {primitive.characterCount}</span>
+                  {primitive.learned ? (
+                    <span className="rounded-full bg-success/14 px-1.5 py-px text-success">
+                      learned
+                    </span>
+                  ) : null}
                 </span>
               </motion.button>
             ))}
@@ -601,6 +652,11 @@ export function BrowseView() {
                     </span>
                   ) : null}
                   <span className="truncate text-primary/80">{form.pinyin.split(",")[0]}</span>
+                  {form.learned ? (
+                    <span className="rounded-full bg-success/14 px-1.5 py-px text-success">
+                      learned
+                    </span>
+                  ) : null}
                 </span>
                 <ArrowUpRight className="absolute right-1.5 top-1.5 size-3 text-primary/0 transition-colors group-hover:text-primary/70" />
               </motion.button>
@@ -639,6 +695,19 @@ export function BrowseView() {
                     </span>
                   ) : null}
                   {item.rank ? <span>rank {item.rank}</span> : null}
+                  {item.coverage != null ? (
+                    <span
+                      className={cn(
+                        "rounded-full px-1.5 py-px",
+                        item.coverage > 0 ? "bg-primary/10 text-primary" : "bg-foreground/6",
+                      )}
+                      title={`${item.coverage}% of its components learned${
+                        item.missing ? ` · ${item.missing} to go` : ""
+                      }`}
+                    >
+                      {item.coverage}%
+                    </span>
+                  ) : null}
                 </span>
               </motion.button>
             ))}

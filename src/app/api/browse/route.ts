@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getFrequencyTable, getRadicals } from "@/lib/dictionary/frequency";
 import { componentCharacters } from "@/lib/hanzi";
+import { componentKey, coverageOf, taughtKeys } from "@/lib/dictionary/components";
 import strokeCounts from "@/lib/dictionary/stroke-counts.generated.json";
 import primitiveData from "@/lib/dictionary/primitives.generated.json";
 
@@ -10,6 +11,8 @@ export const dynamic = "force-dynamic";
 
 const countByStrokes = strokeCounts as Record<string, number>;
 const MAX_CHARACTERS = 300;
+/** How many common characters the "recommended" sort scores. */
+const RECOMMENDED_POOL = 1500;
 
 export type BrowseItem = {
   character: string;
@@ -17,9 +20,13 @@ export type BrowseItem = {
   meaning: string;
   rank: number | null;
   strokes: number | null;
+  /** Learned coverage of the character's components, for the recommended sort. */
+  coverage?: number | null;
+  /** Unlearned components left, the tie-breaker for recommended. */
+  missing?: number | null;
 };
 
-export type CharacterSort = "common" | "rare";
+export type CharacterSort = "common" | "rare" | "recommended";
 
 export type PrimitiveForm = {
   key: string;
@@ -28,6 +35,7 @@ export type PrimitiveForm = {
   pinyin: string;
   strokes: number | null;
   characterCount: number;
+  learned: boolean;
 };
 
 export type RadicalForm = {
@@ -41,6 +49,7 @@ export type RadicalForm = {
   isPrimary: boolean;
   characterCount: number | null;
   examples: string[];
+  learned: boolean;
 };
 
 /**
@@ -63,6 +72,8 @@ export async function GET(request: Request) {
     // variant carry their own stroke count and usage, so the stroke filters and
     // the distribution chart can count them independently.
     const forms: RadicalForm[] = [];
+    const learned = parseLearned(searchParams.get("learned"));
+    const taught = taughtKeys(learned);
     for (const radical of getRadicals()) {
       forms.push({
         key: `radical:${radical.number}`,
@@ -74,6 +85,7 @@ export async function GET(request: Request) {
         isPrimary: true,
         characterCount: characterCountFor(radical.glyph),
         examples: radical.examples,
+        learned: taught.has(componentKey(radical.glyph)),
       });
       radical.variants.forEach((variant, index) => {
         forms.push({
@@ -86,27 +98,50 @@ export async function GET(request: Request) {
           isPrimary: false,
           characterCount: characterCountFor(variant.glyph),
           examples: radical.examples,
+          learned: taught.has(componentKey(variant.glyph)),
         });
       });
+    }
+    if (searchParams.get("sort") === "recommended") {
+      // Recommended: learn the unlearned radicals that unlock the most characters.
+      forms.sort(
+        (a, b) =>
+          Number(a.learned) - Number(b.learned) ||
+          (b.characterCount ?? 0) - (a.characterCount ?? 0) ||
+          (a.strokes ?? 99) - (b.strokes ?? 99),
+      );
     }
     return NextResponse.json({ forms }, { headers: { "Cache-Control": "no-store" } });
   }
 
   if (mode === "primitives") {
+    const learned = parseLearned(searchParams.get("learned"));
+    const taught = taughtKeys(learned);
     const primitives: PrimitiveForm[] = (primitiveData as Array<{
       glyph: string;
       pinyin: string;
       meaning: string;
       strokes: number | null;
       characterCount: number;
-    }>).map((primitive) => ({
-      key: `primitive:${primitive.glyph}`,
-      glyph: primitive.glyph,
-      meaning: primitive.meaning,
-      pinyin: primitive.pinyin,
-      strokes: primitive.strokes,
-      characterCount: primitive.characterCount,
-    }));
+    }>)
+      .map((primitive) => ({
+        key: `primitive:${primitive.glyph}`,
+        glyph: primitive.glyph,
+        meaning: primitive.meaning,
+        pinyin: primitive.pinyin,
+        strokes: primitive.strokes,
+        characterCount: primitive.characterCount,
+        learned: taught.has(componentKey(primitive.glyph)),
+      }))
+      // Recommended: learn the unlearned primitive that unlocks the most
+      // characters first.
+      .sort((a, b) =>
+        searchParams.get("sort") === "recommended"
+          ? Number(a.learned) - Number(b.learned) ||
+            b.characterCount - a.characterCount ||
+            (a.strokes ?? 99) - (b.strokes ?? 99)
+          : 0,
+      );
     return NextResponse.json({ primitives }, { headers: { "Cache-Control": "no-store" } });
   }
 
@@ -120,7 +155,11 @@ export async function GET(request: Request) {
 
   // Characters.
   const stroke = parseStroke(searchParams.get("stroke"));
-  const sort: CharacterSort = searchParams.get("sort") === "rare" ? "rare" : "common";
+  const sortParam = searchParams.get("sort");
+  const sort: CharacterSort =
+    sortParam === "rare" ? "rare" : sortParam === "recommended" ? "recommended" : "common";
+  const learned = parseLearned(searchParams.get("learned"));
+  const taught = taughtKeys(learned);
 
   // Without a stroke filter the pool is the whole ranked corpus; with one it is
   // the characters we actually have stroke data for.
@@ -130,6 +169,33 @@ export async function GET(request: Request) {
       : Object.entries(countByStrokes)
           .filter(([, count]) => count === stroke)
           .map(([character]) => character);
+
+  if (sort === "recommended") {
+    // "What should I learn next": characters you are closest to finishing come
+    // first; ties go to the one with fewer unlearned components, then the more
+    // common character. Only the common part of the corpus is scored, which both
+    // keeps the request fast and biases recommendations toward characters worth
+    // learning.
+    const ranked = [...getFrequencyTable().values()]
+      .sort((a, b) => a.rank - b.rank)
+      .slice(0, RECOMMENDED_POOL)
+      .map((record) => toBrowseItem(record.character))
+      .map((item) => {
+        const coverage = coverageOf(item.character, taught);
+        return { ...item, coverage: coverage.percent, missing: coverage.missing };
+      })
+      .filter((item) => item.rank !== null);
+    const items = ranked
+      .sort(
+        (a, b) =>
+          b.coverage - a.coverage || a.missing - b.missing || rankDelta(a.rank, b.rank),
+      )
+      .slice(0, MAX_CHARACTERS);
+    return NextResponse.json(
+      { items, total: ranked.length, stroke, sort, strokeHistogram: histogram() },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
 
   const items = characters
     .map(toBrowseItem)
@@ -145,6 +211,16 @@ export async function GET(request: Request) {
     },
     { headers: { "Cache-Control": "no-store" } },
   );
+}
+
+/** The learned glyphs arrive as a comma-separated list. */
+function parseLearned(raw: string | null): string[] {
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((glyph) => glyph.trim())
+    .filter((glyph) => glyph.length > 0 && glyph.length <= 4)
+    .slice(0, 500);
 }
 
 function parseStroke(raw: string | null): number | null {

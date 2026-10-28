@@ -86,7 +86,7 @@ export type BrowseUrlState = {
   /** Stroke filter for the active axis; null = no filter. */
   stroke: number | null;
   /** Characters: most/least common. Radicals: Kangxi number or strokes. Primitives: usage or strokes. */
-  sort: "common" | "rare" | "number" | "usage" | "asc" | "desc";
+  sort: "common" | "rare" | "number" | "usage" | "recommended" | "asc" | "desc";
 };
 
 export function isBrowseAxis(value: string | null): value is BrowseAxis {

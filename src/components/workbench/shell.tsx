@@ -1,42 +1,27 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  Activity,
-  BookOpen,
-  ChevronLeft,
-  ChevronRight,
-  Database,
-} from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Activity, BookOpen, ChevronLeft, ChevronRight, Database } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
-import { BrowseView } from "@/components/browse/browse-view";
-import { EntryDetailPane } from "@/components/entry/entry-detail";
-import { SavedView } from "@/components/saved/saved-view";
-import { ResultList } from "@/components/search/result-list";
 import { SearchField } from "@/components/search/search-field";
 import { Sidebar } from "@/components/workbench/sidebar";
-import { SplitPane } from "@/components/workbench/split-pane";
-import { TextAnalyzer } from "@/components/text/text-analyzer";
 import { useWorkbench } from "@/components/workbench/state";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useDictionarySearch } from "@/hooks/use-dictionary-search";
 import type { ApiStatusResponse } from "@/lib/api-types";
-import { clearBrowseUrl, syncDictionaryUrl } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 /**
  * The application shell.
  *
- * Left: navigation + history. Middle: the result list (resizable). Right: the
- * reader pane. The window chrome mirrors a macOS document window — a translucent
- * title bar with the search field, a script segmented control and a status
- * readout for the loaded data.
+ * Left: navigation + history. Middle: whatever the current route renders
+ * (`/dictionary`, `/browse`, `/text`, `/saved`). The window chrome mirrors a
+ * macOS document window — a translucent title bar with the search field, a script
+ * segmented control and a status readout for the loaded data.
  */
-export function Workbench() {
-  const { state, dispatch } = useWorkbench();
+export function WorkbenchShell({ children }: { children: React.ReactNode }) {
+  const { state, dispatch, result, runSearch, selectEntry } = useWorkbench();
   const [status, setStatus] = useState<ApiStatusResponse | null>(null);
-  const { data: result, loading, error } = useDictionarySearch(state.query);
 
   // Warm the server-side index on first paint so the first search is instant.
   useEffect(() => {
@@ -52,45 +37,14 @@ export function Workbench() {
     [hits, state.selectedId],
   );
 
-  const selectEntry = useCallback(
-    (id: number) => {
-      dispatch({ type: "select-entry", id });
-    },
-    [dispatch],
-  );
-
-  /** Opening from Recent/Saved/reader: select, switch to the dictionary, sync URL. */
-  const openEntry = useCallback(
-    (id: number, headword?: string) => {
-      dispatch({ type: "open-entry", id });
-      if (headword) syncDictionaryUrl(headword);
-    },
-    [dispatch],
-  );
-
-  const runSearch = useCallback(
-    (query: string) => {
-      dispatch({ type: "new-search", query });
-    },
-    [dispatch],
-  );
-
   /** Enter on a query jumps straight into the best match. */
-  const searchAndOpen = useCallback(
-    (query: string) => {
-      dispatch({
-        type: "new-search",
-        query,
-        selectFirstId: hits.length > 0 ? hits[0].entry.id : null,
-      });
+  const searchAndOpen = useMemo(
+    () => (query: string) => {
+      runSearch(query);
+      if (hits.length > 0) selectEntry(hits[0].entry.id);
     },
-    [dispatch, hits],
+    [runSearch, hits, selectEntry],
   );
-
-  /** Leaving the Browse tab drops its `?tab=…&view=…` parameters. */
-  useEffect(() => {
-    if (state.view !== "browse") clearBrowseUrl();
-  }, [state.view]);
 
   /** ←/→ step through results once one is selected; ⌘← / ⌘→ walk history. */
   useEffect(() => {
@@ -236,49 +190,8 @@ export function Workbench() {
 
       {/* Body */}
       <div className="flex min-h-0 flex-1">
-        <Sidebar onSelectEntry={openEntry} onSearch={runSearch} />
-
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {state.view === "dictionary" ? (
-            <SplitPane
-              storageKey="pleco-web:results-width"
-              defaultWidth={372}
-              min={300}
-              max={620}
-              left={
-                <div className="material hairline-r flex min-h-0 flex-1 flex-col">
-                  <ResultList
-                    result={result}
-                    loading={loading}
-                    error={error}
-                    onSelect={selectEntry}
-                  />
-                </div>
-              }
-              right={
-                <div className="flex min-h-0 flex-1 flex-col bg-background/40">
-                  <EntryDetailPane
-                    entryId={state.selectedId}
-                    onSearch={runSearch}
-                    onSelectEntry={selectEntry}
-                  />
-                </div>
-              }
-            />
-          ) : null}
-
-          {state.view === "text" ? (
-            <div className="flex min-h-0 flex-1 flex-col">
-              <TextAnalyzer onSelectEntry={openEntry} />
-            </div>
-          ) : null}
-
-          {state.view === "browse" ? <BrowseView /> : null}
-
-          {state.view === "saved" ? (
-            <SavedView onSelectEntry={openEntry} onSearch={runSearch} />
-          ) : null}
-        </main>
+        <Sidebar />
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</main>
       </div>
 
       {/* Status bar */}

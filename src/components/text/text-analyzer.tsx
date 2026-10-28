@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { Glyph } from "@/components/glyph";
 import { Button } from "@/components/ui/button";
+import { useWorkbench } from "@/components/workbench/state";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +35,9 @@ const SAMPLES = [
  * dictionary, clickable words with pinyin + gloss, and a character grid with a
  * pinyin reading and stroke-order shortcut for every unique character.
  */
-export function TextAnalyzer({ onSelectEntry }: { onSelectEntry: (id: number) => void }) {
+export function TextAnalyzer() {
+  const { openEntry } = useWorkbench();
+  const onSelectEntry = openEntry;
   const [text, setText] = useState("");
   const [tokens, setTokens] = useState<Token[]>([]);
   const [characters, setCharacters] = useState<CharacterEntry[]>([]);

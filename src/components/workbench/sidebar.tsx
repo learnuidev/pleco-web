@@ -13,27 +13,24 @@ import {
   Compass,
 } from "lucide-react";
 
-import { useWorkbench, type ViewKey } from "@/components/workbench/state";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+import { useWorkbench } from "@/components/workbench/state";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-const NAV: Array<{ key: ViewKey; label: string; icon: typeof Search; hint: string }> = [
-  { key: "dictionary", label: "Dictionary", icon: Search, hint: "Search the dictionary" },
-  { key: "text", label: "Text", icon: FileText, hint: "Paste text and read it character by character" },
-  { key: "browse", label: "Browse", icon: Compass, hint: "Browse by radical, strokes and frequency" },
-  { key: "saved", label: "Saved words", icon: BookMarked, hint: "Your saved words" },
+const NAV: Array<{ href: string; label: string; icon: typeof Search; hint: string }> = [
+  { href: "/dictionary", label: "Dictionary", icon: Search, hint: "Search the dictionary" },
+  { href: "/text", label: "Text", icon: FileText, hint: "Paste text and read it character by character" },
+  { href: "/browse", label: "Browse", icon: Compass, hint: "Browse by radical, strokes and frequency" },
+  { href: "/saved", label: "Saved words", icon: BookMarked, hint: "Your saved words" },
 ];
 
-export function Sidebar({
-  onSelectEntry,
-  onSearch,
-}: {
-  /** Opens an entry; the headword lets the address bar follow along. */
-  onSelectEntry: (id: number, headword?: string) => void;
-  onSearch: (query: string) => void;
-}) {
-  const { state, dispatch } = useWorkbench();
+export function Sidebar() {
+  const { state, dispatch, openEntry, runSearch } = useWorkbench();
+  const pathname = usePathname();
 
   return (
     <aside
@@ -51,14 +48,14 @@ export function Sidebar({
       </div>
 
       <nav className="px-2 pt-1">
-        {NAV.map(({ key, label, icon: Icon, hint }) => {
-          const active = state.view === key;
+        {NAV.map(({ href, label, icon: Icon, hint }) => {
+          const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
-            <Tooltip key={key}>
+            <Tooltip key={href}>
               <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => dispatch({ type: "set-view", view: key })}
+                <Link
+                  href={href}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
                     "focus-halo relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left text-[13px] font-medium transition-colors",
                     active
@@ -75,12 +72,12 @@ export function Sidebar({
                   ) : null}
                   <Icon className="relative size-4" strokeWidth={2.1} />
                   <span className="relative">{label}</span>
-                  {key === "saved" && state.saved.length > 0 ? (
+                  {href === "/saved" && state.saved.length > 0 ? (
                     <span className="tabular relative ml-auto rounded-full bg-foreground/8 px-1.5 py-px text-[10.5px] text-muted-foreground">
                       {state.saved.length}
                     </span>
                   ) : null}
-                </button>
+                </Link>
               </TooltipTrigger>
               <TooltipContent side="right">{hint}</TooltipContent>
             </Tooltip>
@@ -110,7 +107,7 @@ export function Sidebar({
                 <li key={item.id}>
                   <button
                     type="button"
-                    onClick={() => onSelectEntry(item.id, item.headword)}
+                    onClick={() => openEntry(item.id, item.headword)}
                     className={cn(
                       "focus-halo flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors",
                       state.selectedId === item.id
@@ -149,20 +146,19 @@ export function Sidebar({
               <span className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-muted-foreground">
                 Saved
               </span>
-              <button
-                type="button"
-                onClick={() => dispatch({ type: "set-view", view: "saved" })}
-                className="ml-auto text-[10.5px] text-primary hover:underline"
+              <Link
+                href="/saved"
+                className="focus-halo ml-auto rounded text-[10.5px] text-primary hover:underline"
               >
                 all
-              </button>
+              </Link>
             </div>
             <ul className="max-h-40 space-y-px overflow-y-auto px-2 pb-2">
               {state.saved.slice(0, 8).map((item) => (
                 <li key={item.id} className="group flex items-center">
                   <button
                     type="button"
-                    onClick={() => onSelectEntry(item.id, item.headword)}
+                    onClick={() => openEntry(item.id, item.headword)}
                     className="focus-halo flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-foreground/6"
                   >
                     <span className="glyph shrink-0 text-[14px]">{item.headword}</span>
@@ -231,7 +227,7 @@ export function Sidebar({
 
         <button
           type="button"
-          onClick={() => onSearch("你好")}
+          onClick={() => runSearch("你好")}
           className="glyph focus-halo ml-auto rounded-lg px-2 py-1 text-[13px] text-muted-foreground transition-colors hover:bg-foreground/6 hover:text-foreground"
           title="Try 你好"
         >

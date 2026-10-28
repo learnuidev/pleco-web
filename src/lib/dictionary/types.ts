@@ -61,6 +61,11 @@ export type CharacterInfo = {
   strokeCount: number | null;
   phoneticGroups: PhoneticGroup[];
   wordsWithCharacter: DictionaryEntry[];
+  /**
+   * Characters that use this one as a building block — the radical's family.
+   * Only filled for radicals and primitives, ordered by frequency.
+   */
+  usedIn: { total: number; characters: string[] } | null;
 };
 
 export type RelatedEntry = {

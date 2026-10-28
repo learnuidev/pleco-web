@@ -22,12 +22,37 @@ import {
 import { pinyinToMarks } from "../pinyin";
 
 const NO_GLYPH = "No glyph available";
+
+function isRealGlyph(glyph: string | undefined | null): boolean {
+  return Boolean(glyph) && glyph !== NO_GLYPH;
+}
 const MAX_WORDS_WITH_CHARACTER = 24;
 const MAX_COMPONENT_EXAMPLES = 12;
+const MAX_USED_IN = 96;
 
 export function canonicalCharacterEntry(glyph: string) {
   const { entries } = getDictionary();
   return entries.find((e) => e.simplified === glyph) ?? null;
+}
+
+/**
+ * The characters that use `glyph` as a building block, commonest first.
+ *
+ * Only radicals and primitives are worth listing: for an ordinary character the
+ * reverse index is empty (or noise), and it keeps entry payloads small.
+ */
+function charactersUsing(glyph: string, isBuildingBlock: boolean): CharacterInfo["usedIn"] {
+  if (!isBuildingBlock) return null;
+  const list = componentCharacters(glyph);
+  if (list.length === 0) return null;
+
+  const ranked = [...list].sort((a, b) => {
+    const rankA = getCharacterFrequency(a)?.rank ?? Number.MAX_SAFE_INTEGER;
+    const rankB = getCharacterFrequency(b)?.rank ?? Number.MAX_SAFE_INTEGER;
+    return rankA - rankB;
+  });
+
+  return { total: list.length, characters: ranked.slice(0, MAX_USED_IN) };
 }
 
 export function buildCharacterInfo(glyph: string): CharacterInfo {
@@ -37,12 +62,12 @@ export function buildCharacterInfo(glyph: string): CharacterInfo {
   const components: ComponentInfo[] = [];
 
   for (const component of primitiveComponents) {
-    const isRealGlyph = component !== NO_GLYPH && component.length > 0;
+    const hasGlyph = component !== NO_GLYPH && component.length > 0;
     const radical = findRadicalMatch([component]);
     let usageCount: number | null = null;
     let examples: string[] = [];
 
-    if (isRealGlyph && componentExists(component)) {
+    if (hasGlyph && componentExists(component)) {
       const all = componentCharacters(component);
       usageCount = all.length;
       examples = all.slice(0, MAX_COMPONENT_EXAMPLES);
@@ -53,7 +78,7 @@ export function buildCharacterInfo(glyph: string): CharacterInfo {
       meaning: radical ? radical.meaning : radicalMeaning(component),
       isRadical: Boolean(radical),
       radicalNumber: radical?.number ?? null,
-      isPrimitive: isRealGlyph ? isPrimitive(component) : false,
+      isPrimitive: hasGlyph ? isPrimitive(component) : false,
       usageCount,
       examples,
     });
@@ -100,6 +125,9 @@ export function buildCharacterInfo(glyph: string): CharacterInfo {
     if (wordsWithCharacter.length >= MAX_WORDS_WITH_CHARACTER) break;
   }
 
+  const isBuildingBlock =
+    findRadicalMatch([glyph]) !== null || (isRealGlyph(glyph) && isPrimitive(glyph));
+
   return {
     glyph,
     pinyin: singleDoc?.pinyinMarks ?? null,
@@ -128,5 +156,6 @@ export function buildCharacterInfo(glyph: string): CharacterInfo {
     strokeCount: strokes ? strokes.strokes.length : null,
     phoneticGroups,
     wordsWithCharacter,
+    usedIn: charactersUsing(glyph, isBuildingBlock),
   };
 }

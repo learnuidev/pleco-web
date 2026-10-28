@@ -107,10 +107,18 @@ process); every search after that is single-digit milliseconds.
 | --- | --- |
 | `/` | Redirects to `/dictionary` |
 | `/dictionary` | The workbench, nothing selected |
-| `/dictionary/:character` | The same workbench, booted into that entry |
-| `/dictionary?tab=strokes&view=chart&stroke=8&sort=asc` | The Browse tab, with its axis, chart, filter and sort in the URL |
+| `/dictionary/:character` | That entry in the reader |
+| `/dictionary/想?tab=characters` | The same entry with a reader tab open |
+| `/browse` | Characters by frequency, stroke counts and the radical inventory |
+| `/browse?tab=strokes&view=chart&stroke=8&sort=asc` | Browse, with axis, chart, filter and sort in the URL |
+| `/text` | The text reader |
+| `/saved` | Saved words |
 
-Browse keeps its whole state in the query string — `tab` (`frequency`,
+Every in-app route shares one shell (title bar, sidebar, status bar) from
+`(workbench)/layout.tsx`, so switching routes only swaps the content area and the
+search state survives the move.
+
+Browse (on its own `/browse` route) keeps its whole state in the query string — `tab` (`frequency`,
 `strokes`, `radicals`), `view` (`chart` when the stroke-distribution panel is
 open), `stroke` (the active stroke filter) and `sort` (`asc` / `desc`, radicals
 only) — so a chart or a filtered grid is a link you can bookmark or paste. The
@@ -121,9 +129,10 @@ The dictionary is one layout — sidebar, search, result list and reader — and
 address bar simply follows what the reader shows. Selecting a result, a Recent
 item, a saved word or a related entry rewrites the URL with `replaceState` (no
 reload), so every entry is linkable and shareable while the shell keeps its
-state. Anything that is a character (a browse card, a radical tile) navigates to
-its `/dictionary/:character` URL; decomposition, phonetic clues and stroke order
-stay in the reader's **Characters** and **Strokes** tabs.
+state. The reader's tabs are addressable too: `?tab=characters` opens straight
+into decomposition, and a Characters tab on a radical lists the characters built
+on it. Anything that is a character (a browse card, a radical tile, one of those
+components) navigates to its `/dictionary/:character` URL.
 
 ```bash
 npm run build && npm start   # production build on :4310
@@ -151,7 +160,7 @@ checks before deciding between the local file and the CDN.
 src/
   app/
     api/            search · entry · suggest · segment · browse · character · component · status
-    dictionary/     /dictionary and /dictionary/[character] — the workbench at a real URL
+    (workbench)/    layout with the shell; dictionary/, browse/, text/ and saved/ routes
     globals.css     design tokens (Apple-flavoured materials, elevation, dark mode)
   components/
     workbench/      shell, sidebar, splitter, reducer-backed state

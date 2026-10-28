@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { useId } from "react";
 
@@ -56,7 +57,12 @@ export function StrokeDistribution({
   const total = data.reduce((sum, bucket) => sum + bucket.count, 0);
 
   return (
-    <div className="material hairline-ring overflow-hidden rounded-2xl">
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+      className="material hairline-ring overflow-hidden rounded-2xl"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 pb-1 pt-3">
         <div>
           <p className="text-[12px] font-semibold tracking-tight">{title}</p>
@@ -94,7 +100,12 @@ export function StrokeDistribution({
               cursor={{ fill: "var(--foreground)", fillOpacity: 0.04 }}
               content={<DistributionTooltip unit={unit} />}
             />
-            <Bar dataKey="count" radius={[5, 5, 0, 0]} maxBarSize={28} animationDuration={700}>
+            <Bar
+              dataKey="count"
+              radius={[5, 5, 0, 0]}
+              maxBarSize={28}
+              isAnimationActive={false}
+            >
               {data.map((bucket) => {
                 const isActive = bucket.strokes === activeStroke;
                 const dimmed = activeStroke !== null && !isActive;
@@ -125,6 +136,6 @@ export function StrokeDistribution({
       <p className="px-3.5 pb-2.5 pt-1 text-right text-[10px] tracking-wide text-muted-foreground/80">
         stroke count
       </p>
-    </div>
+    </motion.div>
   );
 }

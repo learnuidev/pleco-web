@@ -1,7 +1,6 @@
 "use client";
 
-import { WORKBENCH_STORAGE_KEY } from "@/lib/storage";
-
+import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -13,7 +12,11 @@ import {
   type ReactNode,
 } from "react";
 
-export type ViewKey = "dictionary" | "text" | "browse" | "saved";
+import { useDictionarySearch } from "@/hooks/use-dictionary-search";
+import type { ApiSearchResponse } from "@/lib/api-types";
+import { characterHref, syncDictionaryUrl, type ReaderTabKey } from "@/lib/routes";
+import { WORKBENCH_STORAGE_KEY } from "@/lib/storage";
+
 export type Script = "simplified" | "traditional";
 
 export type SavedItem = {
@@ -35,12 +38,13 @@ export type HistoryItem = {
 
 export type WorkbenchState = {
   query: string;
-  view: ViewKey;
   script: Script;
   showPinyinMarks: boolean;
   selectedId: number | null;
   /** Set when the user picked a word from the result list, so the list keeps its own highlight. */
   activeHitId: number | null;
+  /** Which reader tab is open; mirrored into `/dictionary/:character?tab=…`. */
+  readerTab: ReaderTabKey;
   saved: SavedItem[];
   history: HistoryItem[];
   textInput: string;
@@ -50,12 +54,14 @@ export type WorkbenchState = {
 
 export type WorkbenchAction =
   | { type: "set-query"; query: string }
-  | { type: "set-view"; view: ViewKey }
   | { type: "new-search"; query: string; selectFirstId?: number | null }
   | { type: "set-script"; script: Script }
   | { type: "toggle-pinyin-marks" }
   | { type: "select-entry"; id: number | null; hitId?: number | null }
   | { type: "open-entry"; id: number }
+  /** Seeds state from the URL (`/dictionary/:character?tab=…`). */
+  | { type: "route-entry"; query?: string; selectedId?: number | null; readerTab?: ReaderTabKey }
+  | { type: "set-reader-tab"; tab: ReaderTabKey }
   | { type: "toggle-save"; item: SavedItem }
   | { type: "remove-saved"; id: number }
   | { type: "push-history"; item: HistoryItem }
@@ -81,14 +87,10 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
   switch (action.type) {
     case "set-query":
       return { ...state, query: action.query };
-    case "set-view":
-      return { ...state, view: action.view };
     case "new-search":
-      // Running a fresh search always lands the reader on the dictionary view.
       return {
         ...state,
         query: action.query,
-        view: "dictionary",
         selectedId: action.selectFirstId ?? state.selectedId,
       };
     case "set-script":
@@ -102,14 +104,23 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
         activeHitId: action.hitId === undefined ? action.id : action.hitId,
       };
     case "open-entry":
-      // Picking an entry from Recent, Saved or the text reader always lands on
-      // the dictionary view, even when the user was browsing another tab.
+      // Picking an entry from Recent, Saved or the text reader always shows the
+      // reader tab, whatever view was open before.
       return {
         ...state,
         selectedId: action.id,
         activeHitId: action.id,
-        view: "dictionary",
       };
+    case "route-entry":
+      return {
+        ...state,
+        query: action.query ?? state.query,
+        selectedId: action.selectedId === undefined ? state.selectedId : action.selectedId,
+        activeHitId: action.selectedId === undefined ? state.activeHitId : action.selectedId,
+        readerTab: action.readerTab ?? state.readerTab,
+      };
+    case "set-reader-tab":
+      return { ...state, readerTab: action.tab };
     case "toggle-save": {
       const exists = state.saved.some((item) => item.id === action.item.id);
       return {
@@ -136,11 +147,11 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
 
 const initialState: WorkbenchState = {
   query: "",
-  view: "dictionary",
   script: "simplified",
   showPinyinMarks: true,
   selectedId: null,
   activeHitId: null,
+  readerTab: "strokes",
   saved: [],
   history: [],
   textInput: "",
@@ -154,26 +165,26 @@ type WorkbenchContextValue = {
   /** The most relevant headword characters to display for a given entry. */
   headword: (entry: { simplified: string; traditional: string }) => string;
   traditionalHint: (entry: { simplified: string; traditional: string }) => string | null;
+  /** Live search state, shared by the result list, shortcuts and the status bar. */
+  result: ApiSearchResponse | null;
+  loading: boolean;
+  error: string | null;
+  selectEntry: (id: number) => void;
+  openEntry: (id: number, headword?: string) => void;
+  runSearch: (query: string) => void;
 };
 
 const WorkbenchContext = createContext<WorkbenchContextValue | null>(null);
 
-/** What the URL hands the workbench when it boots from `/dictionary/:character`. */
-export type WorkbenchInitialState = Partial<Pick<WorkbenchState, "query" | "selectedId" | "view">>;
-
-export function WorkbenchProvider({
-  children,
-  initial,
-}: {
-  children: ReactNode;
-  initial?: WorkbenchInitialState;
-}) {
-  const [state, dispatch] = useReducer(workbenchReducer, { ...initialState, ...initial });
+export function WorkbenchProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(workbenchReducer, initialState);
+  const router = useRouter();
+  const pathname = usePathname();
+  const { data: result, loading, error } = useDictionarySearch(state.query, state.resultLimit);
 
   // Restore then persist. Reading in an effect (not during render) keeps SSR and
   // the first client render identical.
   useEffect(() => {
-    const hasRoute = initial?.query !== undefined || initial?.selectedId !== undefined;
     try {
       const raw = window.localStorage.getItem(WORKBENCH_STORAGE_KEY);
       const parsed = (raw ? JSON.parse(raw) : {}) as Partial<WorkbenchState>;
@@ -184,12 +195,10 @@ export function WorkbenchProvider({
           history: parsed.history ?? [],
           script: parsed.script ?? "simplified",
           showPinyinMarks: parsed.showPinyinMarks ?? true,
-          // The route wins over the last session: a shared link must open the
-          // entry it names, not whatever the browser looked at last.
-          view: initial?.view ?? parsed.view ?? "dictionary",
           textInput: parsed.textInput ?? "",
-          query: initial?.query ?? parsed.query ?? "",
-          selectedId: hasRoute ? initial?.selectedId ?? null : parsed.selectedId ?? null,
+          // query / selectedId / readerTab are owned by the URL (or the session),
+          // never by storage: a shared link must not be overridden by whatever
+          // this browser looked at last.
           // An explicit appearance choice sticks across reloads; the OS
           // preference is only a first-run default.
           theme:
@@ -200,8 +209,6 @@ export function WorkbenchProvider({
     } catch {
       // Corrupt storage should never break the app.
     }
-    // `initial` is fixed for the lifetime of a route render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -214,10 +221,7 @@ export function WorkbenchProvider({
             history: state.history,
             script: state.script,
             showPinyinMarks: state.showPinyinMarks,
-            view: state.view,
             textInput: state.textInput,
-            query: state.query,
-            selectedId: state.selectedId,
             theme: state.theme,
           }),
         );
@@ -231,10 +235,7 @@ export function WorkbenchProvider({
     state.history,
     state.script,
     state.showPinyinMarks,
-    state.view,
     state.textInput,
-    state.query,
-    state.selectedId,
     state.theme,
   ]);
 
@@ -258,9 +259,51 @@ export function WorkbenchProvider({
     [state.script],
   );
 
+  const selectEntry = useCallback(
+    (id: number) => {
+      dispatch({ type: "select-entry", id });
+    },
+    [dispatch],
+  );
+
+  const runSearch = useCallback(
+    (query: string) => {
+      dispatch({ type: "new-search", query });
+    },
+    [dispatch],
+  );
+
+  /** Opening from Recent/Saved/reader: show the reader, keep the URL on the entry. */
+  const openEntry = useCallback(
+    (id: number, entryHeadword?: string) => {
+      dispatch({ type: "open-entry", id });
+      if (!entryHeadword) {
+        if (!pathname.startsWith("/dictionary")) router.push("/dictionary");
+        return;
+      }
+      if (pathname.startsWith("/dictionary")) {
+        syncDictionaryUrl(entryHeadword);
+      } else {
+        router.push(characterHref(entryHeadword));
+      }
+    },
+    [pathname, router],
+  );
+
   const value = useMemo<WorkbenchContextValue>(
-    () => ({ state, dispatch, headword, traditionalHint }),
-    [state, headword, traditionalHint],
+    () => ({
+      state,
+      dispatch,
+      headword,
+      traditionalHint,
+      result,
+      loading,
+      error,
+      selectEntry,
+      openEntry,
+      runSearch,
+    }),
+    [state, headword, traditionalHint, result, loading, error, selectEntry, openEntry, runSearch],
   );
 
   return <WorkbenchContext.Provider value={value}>{children}</WorkbenchContext.Provider>;

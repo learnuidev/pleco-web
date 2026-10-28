@@ -11,14 +11,8 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 /** Saved-words list, with tab-separated export for Anki/Pleco import. */
-export function SavedView({
-  onSelectEntry,
-  onSearch,
-}: {
-  onSelectEntry: (id: number, headword?: string) => void;
-  onSearch: (query: string) => void;
-}) {
-  const { state, dispatch } = useWorkbench();
+export function SavedView() {
+  const { state, dispatch, openEntry: onSelectEntry, runSearch: onSearch } = useWorkbench();
   const [exporting, setExporting] = useState(false);
 
   if (state.saved.length === 0) {

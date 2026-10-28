@@ -10,7 +10,7 @@ import { ExampleBuckets, RelatedList } from "@/components/entry/example-buckets"
 import { Panel } from "@/components/workbench/panel";
 import { StrokeOrderPanel } from "@/components/stroke/stroke-order-panel";
 import { useWorkbench, type SavedItem } from "@/components/workbench/state";
-import { syncDictionaryUrl } from "@/lib/routes";
+import { syncEntryUrl } from "@/lib/routes";
 import type { EntryDetail } from "@/lib/dictionary/types";
 import { cn } from "@/lib/utils";
 
@@ -23,20 +23,16 @@ const TABS: Array<{ key: TabKey; label: string; icon: typeof PenLine }> = [
   { key: "details", label: "Details", icon: Info },
 ];
 
-export function EntryDetailPane({
-  entryId,
-  onSearch,
-  onSelectEntry,
-}: {
-  entryId: number | null;
-  onSearch: (query: string) => void;
-  onSelectEntry: (id: number) => void;
-}) {
-  const { state, dispatch, headword, traditionalHint } = useWorkbench();
+export function EntryDetailPane() {
+  const { state, dispatch, headword, traditionalHint, runSearch, selectEntry } = useWorkbench();
+  const entryId = state.selectedId;
+  const onSearch = runSearch;
+  const onSelectEntry = selectEntry;
   const [detail, setDetail] = useState<EntryDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<TabKey>("strokes");
+  const tab: TabKey = state.readerTab;
+  const setTab = (next: TabKey) => dispatch({ type: "set-reader-tab", tab: next });
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -87,11 +83,11 @@ export function EntryDetailPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail?.entry.id]);
 
-  /** The address bar follows the reader: /dictionary/:headword. */
+  /** The address bar follows the reader: /dictionary/:headword?tab=… */
   useEffect(() => {
     if (!detail) return;
-    syncDictionaryUrl(detail.entry.simplified);
-  }, [detail]);
+    syncEntryUrl(detail.entry.simplified, tab);
+  }, [detail, tab]);
 
   const isSaved = useMemo(
     () => (detail ? state.saved.some((item) => item.id === detail.entry.id) : false),

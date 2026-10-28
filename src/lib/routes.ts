@@ -23,6 +23,28 @@ export function syncDictionaryUrl(glyph: string): void {
   }
 }
 
+/** The reader's tabs, in display order. */
+export const READER_TABS = ["strokes", "characters", "examples", "details"] as const;
+export type ReaderTabKey = (typeof READER_TABS)[number];
+
+export function isReaderTab(value: string | null | undefined): value is ReaderTabKey {
+  return typeof value === "string" && (READER_TABS as readonly string[]).includes(value);
+}
+
+/** `/dictionary/想?tab=characters` — the default tab stays out of the URL. */
+export function entryHref(glyph: string, tab?: ReaderTabKey | null): string {
+  const base = characterHref(glyph);
+  return tab && tab !== "strokes" ? `${base}?tab=${tab}` : base;
+}
+
+/** Keep the address bar on the entry *and* its open tab. */
+export function syncEntryUrl(glyph: string, tab?: ReaderTabKey | null): void {
+  if (typeof window === "undefined" || !glyph) return;
+  const href = entryHref(glyph, tab);
+  const current = `${window.location.pathname}${window.location.search}`;
+  if (current !== href) window.history.replaceState(null, "", href);
+}
+
 /** Query keys owned by the Browse tab. */
 export const BROWSE_PARAMS = ["tab", "view", "stroke", "sort"] as const;
 
@@ -42,14 +64,14 @@ export function isBrowseAxis(value: string | null): value is BrowseAxis {
   return value === "frequency" || value === "strokes" || value === "radicals";
 }
 
-/** `/dictionary?tab=strokes&view=chart&stroke=8&sort=asc` */
+/** `/browse?tab=strokes&view=chart&stroke=8&sort=asc` */
 export function browseHref(state: BrowseUrlState): string {
   const params = new URLSearchParams();
   params.set("tab", state.axis);
   if (state.chart) params.set("view", "chart");
   if (state.stroke !== null) params.set("stroke", String(state.stroke));
   if (state.sort !== "number") params.set("sort", state.sort);
-  return `/dictionary?${params.toString()}`;
+  return `/browse?${params.toString()}`;
 }
 
 /** Reflect the browse state in the URL without navigating. */
@@ -58,23 +80,4 @@ export function syncBrowseUrl(state: BrowseUrlState): void {
   const href = browseHref(state);
   const current = `${window.location.pathname}${window.location.search}`;
   if (current !== href) window.history.replaceState(null, "", href);
-}
-
-/**
- * Leaving the Browse tab should not leave `?tab=…&view=chart` behind on a
- * dictionary URL (the entry path, if any, is kept).
- */
-export function clearBrowseUrl(): void {
-  if (typeof window === "undefined") return;
-  const url = new URL(window.location.href);
-  let changed = false;
-  for (const key of BROWSE_PARAMS) {
-    if (url.searchParams.has(key)) {
-      url.searchParams.delete(key);
-      changed = true;
-    }
-  }
-  if (changed) {
-    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
-  }
 }

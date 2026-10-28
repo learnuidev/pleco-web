@@ -6,6 +6,7 @@ import {
   ArrowUpNarrowWide,
   ArrowUpRight,
   ChartColumn,
+  Check,
   Hash,
   Sparkles,
   TrendingDown,
@@ -107,19 +108,39 @@ function strokeParam(raw: string | null): number | null {
   return Number.isInteger(value) && value >= 1 && value <= 64 ? value : null;
 }
 
-/** Top-right corner of a browse tile: unlock status, or the hover arrow. */
+/**
+ * A browse tile's corner markers: the learned check mark sits top-left, the
+ * unlock status (or the hover arrow) top-right.
+ */
 function TileStatus({
+  learned,
   full,
   partial,
   coverage,
 }: {
-  /** Fully unlocked (or learned, for single-component tiles). */
-  full: boolean;
-  /** Partly unlocked — only characters can be partial. */
+  /**
+   * Marked learned — a check mark in the top-left corner. It wins over the
+   * unlock badge: learning a radical is not the same claim as unlocking
+   * everything built on it, and a single-glyph tile is never "fully unlocked".
+   */
+  learned?: boolean;
+  /** Every component learned, so the character is unlocked. */
+  full?: boolean;
+  /** Only some components learned — only characters can be partial. */
   partial?: boolean;
   /** Coverage percentage, for the tooltip. */
   coverage?: number | null;
 }) {
+  if (learned) {
+    return (
+      <span
+        className="absolute left-1.5 top-1.5 grid size-4 place-items-center rounded-full bg-success/15 text-success"
+        title="Learned"
+      >
+        <Check className="size-2.5" />
+      </span>
+    );
+  }
   if (full) {
     return (
       <span
@@ -616,7 +637,7 @@ export function BrowseView() {
                 } · used in ${primitive.characterCount} characters`}
                 className="focus-halo group relative flex flex-col items-center gap-1 rounded-xl bg-card px-2 pb-2 pt-2.5 shadow-hairline ring-1 ring-black/5 transition-all hover:shadow-raised hover:ring-primary/25 dark:ring-white/8"
               >
-                <TileStatus full={primitive.learned} />
+                <TileStatus learned={primitive.learned} />
                 <Glyph size="lg" className="text-foreground">
                   {primitive.glyph}
                 </Glyph>
@@ -634,11 +655,6 @@ export function BrowseView() {
                     </span>
                   ) : null}
                   <span>in {primitive.characterCount}</span>
-                  {primitive.learned ? (
-                    <span className="rounded-full bg-success/14 px-1.5 py-px text-success">
-                      learned
-                    </span>
-                  ) : null}
                 </span>
               </motion.button>
             ))}
@@ -691,13 +707,8 @@ export function BrowseView() {
                     </span>
                   ) : null}
                   <span className="truncate text-primary/80">{form.pinyin.split(",")[0]}</span>
-                  {form.learned ? (
-                    <span className="rounded-full bg-success/14 px-1.5 py-px text-success">
-                      learned
-                    </span>
-                  ) : null}
                 </span>
-                <TileStatus full={form.learned} />
+                <TileStatus learned={form.learned} />
               </motion.button>
             ))}
             {visibleRadicals.length === 0 && !loading ? (

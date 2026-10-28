@@ -11,6 +11,7 @@
 import { readFileSync } from "node:fs";
 
 import { hanziDataFile } from "../hanzi-paths";
+import radicalStrokes from "./radical-strokes.generated.json";
 
 function readRaw(file: string): string {
   return readFileSync(hanziDataFile(file), "utf8");
@@ -79,6 +80,8 @@ export type Radical = {
   number: number;
   glyph: string;
   meaning: string;
+  /** Classic Kangxi stroke count (variants follow their base radical). */
+  strokes: number | null;
 };
 
 let radicalCache: Radical[] | null = null;
@@ -99,10 +102,12 @@ export function getRadicals(): Radical[] {
   if (radicalCache) return radicalCache;
   const list = parseExportedJson<string[]>("radicalList.js", "[", "]");
   const meanings = getRadicalMeanings();
+  const strokeCounts = radicalStrokes as Record<string, number>;
   radicalCache = list.map((glyph, index) => ({
     number: index + 1,
     glyph,
     meaning: meanings[glyph] ?? "",
+    strokes: strokeCounts[glyph] ?? null,
   }));
   return radicalCache;
 }

@@ -72,6 +72,9 @@ with the same data set Pleco-style apps use.
 - Most frequent characters, character sets filtered by stroke count (from the
   locally mirrored stroke data), and the full Kangxi radical inventory with
   meaning, number and usage counts.
+- The radical grid filters by stroke count, sorts by Kangxi number (default)
+  or stroke count either way, and opens a gradient-filled stroke-distribution
+  chart (recharts) whose bars double as filters.
 
 **Saved words**
 
@@ -100,6 +103,7 @@ process); every search after that is single-digit milliseconds.
 npm run build && npm start   # production build on :4310
 npm run typecheck            # tsc --noEmit
 npm run fetch:strokes        # mirror more stroke data (see below)
+npm run gen:radical-strokes  # rebuild radical stroke counts (needs network)
 ```
 
 ### Stroke data

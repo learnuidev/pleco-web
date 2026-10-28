@@ -1,13 +1,23 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ChartColumn, Clock3, GraduationCap, Sparkles, Trash2, Unlock } from "lucide-react";
+import {
+  ChartColumn,
+  Clock3,
+  GraduationCap,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+  Sparkles,
+  Trash2,
+  Unlock,
+} from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Glyph } from "@/components/glyph";
 import { LearningProgressChart } from "@/components/learning/learning-progress-chart";
-import { LearningTimeMachine } from "@/components/learning/learning-time-machine";
 import { Button } from "@/components/ui/button";
 import { useWorkbench } from "@/components/workbench/state";
 import { characterHref, isLearningTab, learningHref, type LearningTabKey } from "@/lib/routes";
@@ -42,7 +52,6 @@ const LEARNING_TAB_LABELS: Array<{ key: LearningTabKey; label: string; icon: typ
   { key: "learned", label: "Learned", icon: GraduationCap },
   { key: "full", label: "Fully unlocked", icon: Sparkles },
   { key: "partial", label: "Partly unlocked", icon: Unlock },
-  { key: "timeline", label: "Time machine", icon: Clock3 },
 ];
 
 const EMPTY: LearningPayload = {
@@ -68,17 +77,67 @@ export function LearningView() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const tab: LearningTabKey = isLearningTab(tabParam) ? tabParam : "overview";
+  const replayOn = searchParams.get("replay") === "1";
 
   const goToTab = (next: LearningTabKey) => {
-    const href = learningHref(next);
+    const href = learningHref(next, replayOn);
     if (`${window.location.pathname}${window.location.search}` !== href) {
       router.push(href, { scroll: false });
     }
   };
+
+  /** Learning events, oldest first — the time machine's timeline. */
+  const events = useMemo(
+    () =>
+      state.learned
+        .map((glyph) => ({ glyph, at: state.learnedAt[glyph] ?? 0 }))
+        .sort((a, b) => a.at - b.at),
+    [state.learned, state.learnedAt],
+  );
+
+  useEffect(() => {
+    setReplay(replayOn);
+  }, [replayOn]);
+
+  const [replay, setReplay] = useState(replayOn);
+  const [step, setStep] = useState(0);
+  const [playing, setPlaying] = useState(false);
+
+  // Replay drives the learned set every tab reads from.
+  const replayLearned = useMemo(
+    () => events.slice(0, Math.min(step + 1, events.length)).map((event) => event.glyph),
+    [events, step],
+  );
+  const effectiveLearned = replay ? replayLearned : state.learned;
+
+  const goToReplay = (next: boolean) => {
+    setReplay(next);
+    setPlaying(next);
+    setStep(0);
+    const href = learningHref(tab, next);
+    if (`${window.location.pathname}${window.location.search}` !== href) {
+      router.push(href, { scroll: false });
+    }
+  };
+
+  // Auto-play: one learned glyph every 900ms, stopping on the last step.
+  useEffect(() => {
+    if (!replay || !playing) return;
+    const timer = window.setInterval(() => {
+      setStep((current) => {
+        if (current >= events.length - 1) {
+          setPlaying(false);
+          return current;
+        }
+        return current + 1;
+      });
+    }, 900);
+    return () => window.clearInterval(timer);
+  }, [replay, playing, events.length]);
   const [payload, setPayload] = useState<LearningPayload>(EMPTY);
   const [loading, setLoading] = useState(false);
 
-  const learnedKey = state.learned.join(",");
+  const learnedKey = effectiveLearned.join(",");
 
   useEffect(() => {
     if (!learnedKey) {
@@ -141,6 +200,17 @@ export function LearningView() {
           {payload.counts.partial} partly unlocked
         </span>
         <div className="ml-auto flex items-center gap-1.5">
+          <Button
+            variant={replay ? "default" : "outline"}
+            size="sm"
+            className="rounded-full text-[12px]"
+            disabled={total === 0}
+            aria-pressed={replay}
+            onClick={() => goToReplay(!replay)}
+          >
+            <Clock3 className="size-3.5" />
+            Time machine
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -230,15 +300,6 @@ export function LearningView() {
               </section>
             ) : null}
           </div>
-        ) : null}
-
-        {tab === "timeline" ? (
-          <LearningTimeMachine
-            events={state.learned
-              .map((glyph) => ({ glyph, at: state.learnedAt[glyph] ?? 0 }))
-              .sort((a, b) => a.at - b.at)}
-            openCharacter={openCharacter}
-          />
         ) : null}
 
         {tab === "learned" ? (
@@ -331,6 +392,65 @@ export function LearningView() {
           </section>
         ) : null}
       </div>
+
+      {replay ? (
+        <div className="hairline-t material-strong flex shrink-0 flex-wrap items-center gap-1.5 px-3 py-1.5">
+          <Clock3 className="size-3.5 text-muted-foreground" />
+          <span className="mr-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            Time machine
+          </span>
+          <Button variant="ghost" size="icon-sm" className="rounded-full" aria-label="First step"
+            onClick={() => { setPlaying(false); setStep(0); }}>
+            <SkipBack className="size-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" className="rounded-full" aria-label="Previous step"
+            onClick={() => { setPlaying(false); setStep((current) => Math.max(0, current - 1)); }}>
+            <SkipBack className="size-3.5 rotate-90" />
+          </Button>
+          <Button variant={playing ? "default" : "outline"} size="icon-sm" className="rounded-full"
+            aria-label={playing ? "Pause replay" : "Play replay"}
+            onClick={() => { if (!playing && step >= events.length - 1) setStep(0); setPlaying((value) => !value); }}>
+            {playing ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
+          </Button>
+          <Button variant="ghost" size="icon-sm" className="rounded-full" aria-label="Next step"
+            onClick={() => { setPlaying(false); setStep((current) => Math.min(events.length - 1, current + 1)); }}>
+            <SkipForward className="size-3.5 rotate-90" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" className="rounded-full" aria-label="Last step"
+            onClick={() => { setPlaying(false); setStep(Math.max(0, events.length - 1)); }}>
+            <SkipForward className="size-3.5" />
+          </Button>
+
+          <input
+            type="range"
+            min={0}
+            max={Math.max(0, events.length - 1)}
+            value={step}
+            onChange={(event) => { setPlaying(false); setStep(Number(event.target.value)); }}
+            aria-label="Replay progress"
+            className="mx-1.5 min-w-[96px] flex-1 accent-primary"
+          />
+
+          <span className="tabular shrink-0 text-[11px] text-muted-foreground">
+            step {events.length === 0 ? 0 : step + 1} / {events.length}
+          </span>
+          {events[step] ? (
+            <span className="inline-flex shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Glyph size="sm" className="text-foreground">{events[step].glyph}</Glyph>
+              {events[step].at ? new Date(events[step].at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+            </span>
+          ) : null}
+          <span className="tabular shrink-0 rounded-full bg-primary/10 px-1.5 py-px text-[10px] text-primary">
+            {payload.counts.full} fully
+          </span>
+          <span className="tabular shrink-0 rounded-full bg-foreground/6 px-1.5 py-px text-[10px] text-muted-foreground">
+            {payload.counts.partial} partly
+          </span>
+          <Button variant="ghost" size="sm" className="rounded-full text-[11.5px]" onClick={() => goToReplay(false)}>
+            Exit
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -75,16 +75,20 @@ export function syncEntryUrl(
 }
 
 /** Tabs of the Learning page; "overview" is the default. */
-export const LEARNING_TABS = ["overview", "learned", "full", "partial", "timeline"] as const;
+export const LEARNING_TABS = ["overview", "learned", "full", "partial"] as const;
 export type LearningTabKey = (typeof LEARNING_TABS)[number];
 
 export function isLearningTab(value: string | null | undefined): value is LearningTabKey {
   return typeof value === "string" && (LEARNING_TABS as readonly string[]).includes(value);
 }
 
-/** `/learning?tab=full` — the default (overview) stays out of the URL. */
-export function learningHref(tab?: LearningTabKey | null): string {
-  return tab && tab !== "overview" ? `/learning?tab=${tab}` : "/learning";
+/** `/learning?tab=full&replay=1` — defaults stay out of the URL. */
+export function learningHref(tab?: LearningTabKey | null, replay = false): string {
+  const params = new URLSearchParams();
+  if (tab && tab !== "overview") params.set("tab", tab);
+  if (replay) params.set("replay", "1");
+  const query = params.toString();
+  return query ? `/learning?${query}` : "/learning";
 }
 
 /** Query keys owned by the Browse tab. */

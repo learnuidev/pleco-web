@@ -4,13 +4,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   BookMarked,
   Clock3,
+  Compass,
   FileText,
+  GraduationCap,
+  Moon,
   Search,
   Sun,
-  Moon,
   Trash2,
   Type,
-  Compass,
 } from "lucide-react";
 
 import Link from "next/link";
@@ -25,6 +26,7 @@ const NAV: Array<{ href: string; label: string; icon: typeof Search; hint: strin
   { href: "/dictionary", label: "Dictionary", icon: Search, hint: "Search the dictionary" },
   { href: "/text", label: "Text", icon: FileText, hint: "Paste text and read it character by character" },
   { href: "/browse", label: "Browse", icon: Compass, hint: "Browse radicals and characters" },
+  { href: "/learning", label: "Learning", icon: GraduationCap, hint: "Learned characters and the characters they unlock" },
   { href: "/history", label: "History", icon: Clock3, hint: "Everything you opened, in 20-minute blocks" },
   { href: "/saved", label: "Saved words", icon: BookMarked, hint: "Your saved words" },
 ];
@@ -76,6 +78,11 @@ export function Sidebar() {
                   {href === "/saved" && state.saved.length > 0 ? (
                     <span className="tabular relative ml-auto rounded-full bg-foreground/8 px-1.5 py-px text-[10.5px] text-muted-foreground">
                       {state.saved.length}
+                    </span>
+                  ) : null}
+                  {href === "/learning" && state.learned.length > 0 ? (
+                    <span className="tabular relative ml-auto rounded-full bg-foreground/8 px-1.5 py-px text-[10.5px] text-muted-foreground">
+                      {state.learned.length}
                     </span>
                   ) : null}
                 </Link>

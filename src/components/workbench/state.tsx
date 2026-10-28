@@ -58,6 +58,8 @@ export type WorkbenchState = {
   /** Set when the user picked a word from the result list, so the list keeps its own highlight. */
   activeHitId: number | null;
   saved: SavedItem[];
+  /** Characters and radicals marked as learned. */
+  learned: string[];
   history: HistoryItem[];
   textInput: string;
   theme: "light" | "dark";
@@ -74,6 +76,8 @@ export type WorkbenchAction =
   /** Seeds state from the URL (`/dictionary/:character?tab=…`). */
   | { type: "route-entry"; query?: string; selectedId?: number | null }
   | { type: "toggle-save"; item: SavedItem }
+  | { type: "toggle-learned"; glyph: string }
+  | { type: "clear-learned" }
   | { type: "remove-saved"; id: number }
   | { type: "push-history"; item: HistoryItem }
   | { type: "push-text-history"; text: string }
@@ -173,6 +177,17 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
     }
     case "remove-saved":
       return { ...state, saved: state.saved.filter((item) => item.id !== action.id) };
+    case "toggle-learned": {
+      const exists = state.learned.includes(action.glyph);
+      return {
+        ...state,
+        learned: exists
+          ? state.learned.filter((glyph) => glyph !== action.glyph)
+          : [action.glyph, ...state.learned].slice(0, 500),
+      };
+    }
+    case "clear-learned":
+      return { ...state, learned: [] };
     case "push-history":
       return { ...state, history: uniqueHistory([action.item, ...state.history]) };
     case "push-text-history": {
@@ -205,6 +220,7 @@ const initialState: WorkbenchState = {
   selectedId: null,
   activeHitId: null,
   saved: [],
+  learned: [],
   history: [],
   textInput: "",
   theme: "light",
@@ -223,6 +239,8 @@ type WorkbenchContextValue = {
   error: string | null;
   selectEntry: (id: number) => void;
   openEntry: (id: number, headword?: string) => void;
+  /** Navigates to `/dictionary/:glyph` (used for links by headword). */
+  openCharacter: (glyph: string) => void;
   /** Restores a text session and lands on the text reader. */
   openText: (text: string) => void;
   runSearch: (query: string) => void;
@@ -246,6 +264,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
         type: "hydrate",
         state: {
           saved: parsed.saved ?? [],
+          learned: parsed.learned ?? [],
           history: normaliseHistory(parsed.history),
           script: parsed.script ?? "simplified",
           showPinyinMarks: parsed.showPinyinMarks ?? true,
@@ -272,6 +291,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
           WORKBENCH_STORAGE_KEY,
           JSON.stringify({
             saved: state.saved,
+            learned: state.learned,
             history: state.history,
             script: state.script,
             showPinyinMarks: state.showPinyinMarks,
@@ -286,6 +306,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(handle);
   }, [
     state.saved,
+    state.learned,
     state.history,
     state.script,
     state.showPinyinMarks,
@@ -344,6 +365,14 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     [pathname, router],
   );
 
+  const openCharacter = useCallback(
+    (glyph: string) => {
+      if (!glyph) return;
+      router.push(characterHref(glyph));
+    },
+    [router],
+  );
+
   /** Restore a text session from history and switch to the text reader. */
   const openText = useCallback(
     (text: string) => {
@@ -364,10 +393,23 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
       error,
       selectEntry,
       openEntry,
+      openCharacter,
       openText,
       runSearch,
     }),
-    [state, headword, traditionalHint, result, loading, error, selectEntry, openEntry, openText, runSearch],
+    [
+      state,
+      headword,
+      traditionalHint,
+      result,
+      loading,
+      error,
+      selectEntry,
+      openEntry,
+      openCharacter,
+      openText,
+      runSearch,
+    ],
   );
 
   return <WorkbenchContext.Provider value={value}>{children}</WorkbenchContext.Provider>;

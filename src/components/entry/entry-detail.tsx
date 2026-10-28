@@ -144,6 +144,16 @@ export function EntryDetailPane() {
     [state.saved, detail],
   );
 
+  const isLearned = useMemo(
+    () => (detail ? state.learned.includes(detail.entry.simplified) : false),
+    [state.learned, detail],
+  );
+
+  function toggleLearned() {
+    if (!detail) return;
+    dispatch({ type: "toggle-learned", glyph: detail.entry.simplified });
+  }
+
   const strokeCounts = useMemo(() => {
     if (!detail) return undefined;
     const counts: Record<string, number | null> = {};
@@ -208,6 +218,9 @@ export function EntryDetailPane() {
             alternative={alt}
             saved={isSaved}
             onToggleSave={toggleSave}
+            learned={isLearned}
+            canLearn={detail.length === 1}
+            onToggleLearned={toggleLearned}
             onSearch={onSearch}
           />
 

@@ -87,6 +87,14 @@ Two inventories, one toolbar language (Radicals opens first):
 - Every character and radical is a link into its own `/dictionary/:character`
   page.
 
+**Learning**
+
+- Mark a character or radical as learned from the reader.
+- `/learning` lists everything learned, plus the characters those radicals
+  **fully unlock** (every radical learned) and **partly unlock** (some learned —
+  with the percentage and the radicals still missing, each linking straight to
+  the radical you need to learn).
+
 **Saved words**
 
 - Saved in the browser, exported as tab-separated (Anki / Pleco friendly), CSV,
@@ -124,6 +132,7 @@ process); every search after that is single-digit milliseconds.
 | `/text` | The text reader |
 | `/saved` | Saved words |
 | `/history` | Everything opened in the reader, grouped into blocks (newest first) |
+| `/learning` | Learned characters/radicals and the characters they unlock |
 
 Every in-app route shares one shell (title bar, sidebar, status bar) from
 `(workbench)/layout.tsx`, so switching routes only swaps the content area and the

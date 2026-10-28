@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, BookmarkCheck, Copy, Volume2 } from "lucide-react";
+import { Bookmark, BookmarkCheck, Copy, GraduationCap, Volume2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 
@@ -21,6 +21,9 @@ export function EntryHero({
   alternative,
   saved,
   onToggleSave,
+  learned,
+  canLearn,
+  onToggleLearned,
   onSearch,
 }: {
   detail: EntryDetail;
@@ -28,6 +31,10 @@ export function EntryHero({
   alternative: string | null;
   saved: boolean;
   onToggleSave: () => void;
+  /** Whether this headword is in the learned set (single characters only). */
+  learned: boolean;
+  canLearn: boolean;
+  onToggleLearned: () => void;
   onSearch: (query: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -161,6 +168,27 @@ export function EntryHero({
               )}
               <span className="text-[12.5px]">{saved ? "Saved" : "Save"}</span>
             </Button>
+
+            {canLearn ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={learned ? "default" : "outline"}
+                    size="sm"
+                    className="rounded-full"
+                    onClick={onToggleLearned}
+                  >
+                    <GraduationCap className="size-3.5" />
+                    <span className="text-[12.5px]">{learned ? "Learned" : "Learn"}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  {learned
+                    ? "Remove from the Learning page"
+                    : "Track this character and the characters its radicals unlock"}
+                </TooltipContent>
+              </Tooltip>
+            ) : null}
 
             <Tooltip>
               <TooltipTrigger asChild>

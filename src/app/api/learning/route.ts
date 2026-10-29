@@ -28,6 +28,57 @@ const MAX_PER_SECTION = 120;
  */
 const MAX_PARTIAL = 600;
 
+/**
+ * Grow the taught set to a fixpoint: a character whose components are all
+ * learned counts as learned itself, which can finish further characters.
+ *
+ * Work-queue shaped rather than repeated passes: each character is counted once
+ * against the keys it still needs, and every newly taught key releases the
+ * characters waiting on it. That keeps a 4 000-candidate closure linear instead
+ * of quadratic, which matters because the time machine runs it per replay step.
+ */
+function closeTaught(taught: Set<string>, componentSets: Map<string, Map<string, string>>): void {
+  /** key → characters that become finished once that key is taught. */
+  const waiters = new Map<string, string[]>();
+  /** character → how many of its components are still unlearned. */
+  const outstanding = new Map<string, number>();
+  const ready: string[] = [];
+
+  for (const [character, components] of componentSets) {
+    let count = 0;
+    for (const key of components.keys()) {
+      if (taught.has(key)) continue;
+      count += 1;
+      const waiting = waiters.get(key);
+      if (waiting) waiting.push(character);
+      else waiters.set(key, [character]);
+    }
+    if (count === 0) ready.push(character);
+    else outstanding.set(character, count);
+  }
+
+  while (ready.length > 0) {
+    const character = ready.pop() as string;
+    const key = componentKey(character);
+    if (taught.has(key)) {
+      // Already known, so nobody is waiting on it any more.
+      continue;
+    }
+    taught.add(key);
+    for (const waiter of waiters.get(key) ?? []) {
+      const left = outstanding.get(waiter);
+      // Already released: its other keys had been taught first.
+      if (left === undefined) continue;
+      if (left > 1) {
+        outstanding.set(waiter, left - 1);
+      } else {
+        outstanding.delete(waiter);
+        ready.push(waiter);
+      }
+    }
+  }
+}
+
 type CharacterSummary = {
   glyph: string;
   pinyin: string;
@@ -109,7 +160,7 @@ export async function GET(request: Request) {
   }
 
   /** What a component counts as learned-by: its radical meaning, else its glyph. */
-  const taughtKeys = keysFor(learned);
+  const taught = keysFor(learned);
 
   const full: UnlockCharacter[] = [];
   const partial: UnlockCharacter[] = [];
@@ -135,15 +186,35 @@ export async function GET(request: Request) {
 
     if (components.size === 0) continue;
 
+    // Characters with nothing learned yet are not unlocks; the rest are kept so
+    // the closure below and the time machine can classify them.
+    let started = false;
+    for (const key of components.keys()) {
+      if (taught.has(key)) {
+        started = true;
+        break;
+      }
+    }
+    if (!started) continue;
+
+    componentSets.set(character, components);
+  }
+
+  // A character whose components are all learned is itself unlocked, so it
+  // teaches its own key: a half-finished 三 must not keep listing 二 as missing
+  // once 二 is sitting in the fully-unlocked list. This is a fixpoint — an
+  // unlock can finish another character, which can finish another — so it runs
+  // as a work queue rather than a fixed number of passes.
+  closeTaught(taught, componentSets);
+
+  for (const [character, components] of componentSets) {
     const learnedComponents: string[] = [];
     const missing: string[] = [];
     for (const [key, glyph] of components) {
-      if (taughtKeys.has(key)) learnedComponents.push(glyph);
+      if (taught.has(key)) learnedComponents.push(glyph);
       else missing.push(glyph);
     }
-    if (learnedComponents.length === 0) continue;
 
-    componentSets.set(character, components);
     const unlock: UnlockCharacter = {
       ...summary(character),
       components: [...components.values()],
@@ -174,7 +245,7 @@ export async function GET(request: Request) {
   // Time machine: replay the learned glyphs in the order they were learned and
   // report what each step unlocked or moved forward.
   if (searchParams.get("timeline") === "1") {
-    const taught = new Set<string>();
+    const taughtSoFar = new Set<string>();
     const completed = new Set<string>();
     const previousPercent = new Map<string, number>();
     const steps: Array<{
@@ -185,13 +256,16 @@ export async function GET(request: Request) {
     }> = [];
 
     for (const glyph of learned) {
-      taught.add(componentKey(glyph));
+      taughtSoFar.add(componentKey(glyph));
+      // Same rule as the snapshot: a character this step finishes teaches its
+      // radical, so later steps see it as learned too.
+      closeTaught(taughtSoFar, componentSets);
       const fullNew: string[] = [];
       const progressed: Array<{ glyph: string; percent: number; delta: number }> = [];
 
       for (const [character, components] of componentSets) {
         let learnedCount = 0;
-        for (const key of components.keys()) if (taught.has(key)) learnedCount += 1;
+        for (const key of components.keys()) if (taughtSoFar.has(key)) learnedCount += 1;
         const percent = Math.round((learnedCount / components.size) * 100);
         const before = previousPercent.get(character) ?? 0;
         if (percent === 100 && !completed.has(character)) {

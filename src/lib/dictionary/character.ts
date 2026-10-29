@@ -5,6 +5,7 @@
  */
 
 import { getDictionary } from "./cedict";
+import { decodeComponentList } from "./components";
 import { findRadicalMatch, getCharacterFrequency } from "./frequency";
 import { getDocById, getSearchIndex } from "./search";
 import { loadStrokeDataSync } from "./stroke-data";
@@ -69,7 +70,9 @@ function charactersUsing(glyph: string, isBuildingBlock: boolean): CharacterInfo
 export function buildCharacterInfo(glyph: string): CharacterInfo {
   const decomposition = decompose(glyph);
 
-  const primitiveComponents = decomposition?.components4 ?? decomposition?.components2 ?? [];
+  const primitiveComponents = decodeComponentList(
+    decomposition?.components4 ?? decomposition?.components2 ?? [],
+  );
   const components: ComponentInfo[] = [];
 
   for (const component of primitiveComponents) {
@@ -145,10 +148,12 @@ export function buildCharacterInfo(glyph: string): CharacterInfo {
     readings: readings(glyph).map((reading) => pinyinToMarks(reading)),
     definition: singleDoc ? singleDoc.entry.definition.split("/").filter(Boolean).join("; ") : null,
     decomposition: {
-      once: decomposition?.components1 ?? [],
-      radical: decomposition?.components2 ?? [],
-      graphical: decomposition?.components3 ?? [],
-      primitive: decomposition?.components4 ?? [],
+      // Stroke tokens and synthetic glyphs are decoded here too, so the
+      // Graphical view reads 丿 where HanziJS emitted ㇒.
+      once: decodeComponentList(decomposition?.components1 ?? []),
+      radical: decodeComponentList(decomposition?.components2 ?? []),
+      graphical: decodeComponentList(decomposition?.components3 ?? []),
+      primitive: decodeComponentList(decomposition?.components4 ?? []),
     },
     tree: {
       primitive: decompositionTree(glyph, "primitive"),

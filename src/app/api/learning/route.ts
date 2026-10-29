@@ -13,7 +13,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_LEARNED = 500;
-const MAX_CANDIDATES = 600;
+/**
+ * Safety stop for the number of characters decomposed per request. The learned
+ * set is ordered differently by every caller (the newset-first store vs the
+ * time machine's oldest-first replay), so this may never be applied in list
+ * order: whatever survives is chosen by frequency, never by arrival.
+ */
+const MAX_CANDIDATES = 4000;
 const MAX_PER_SECTION = 120;
 
 type CharacterSummary = {
@@ -78,6 +84,13 @@ export async function GET(request: Request) {
   // and each candidate remembers which learned glyphs put it there, because the
   // reverse index can know about a stroke the primitive decomposition folds into
   // a blob (丶 never shows up in 之's component list, but 之 is built on it).
+  //
+  // Every learned glyph contributes before anything is narrowed. Trimming inside
+  // this loop let the *order* of `learned` decide the answers — the store hands
+  // glyphs over newest-first, the time machine replays them oldest-first, so the
+  // same set reported wildly different unlock counts (25 fully unlocked on the
+  // last replay step vs 3 with replay off). The union is order-free; only the
+  // safety stop below narrows it, and that uses frequency, not arrival order.
   const family = new Map<string, Set<string>>();
   for (const glyph of learned) {
     for (const character of componentCharacters(glyph)) {
@@ -85,9 +98,7 @@ export async function GET(request: Request) {
       const uses = family.get(character) ?? new Set<string>();
       uses.add(glyph);
       family.set(character, uses);
-      if (family.size >= MAX_CANDIDATES) break;
     }
-    if (family.size >= MAX_CANDIDATES) break;
   }
 
   /** What a component counts as learned-by: its radical meaning, else its glyph. */
@@ -98,7 +109,16 @@ export async function GET(request: Request) {
   /** character → (component key → display glyph), reused by the time machine. */
   const componentSets = new Map<string, Map<string, string>>();
 
-  for (const character of family.keys()) {
+  // The candidate list is narrowed by frequency, then by glyph, so two orders of
+  // the same learned set always decompose the same characters and return the
+  // same counts.
+  const candidates = [...family.keys()].sort(
+    (a, b) =>
+      (frequency.get(a)?.rank ?? Number.MAX_SAFE_INTEGER) -
+        (frequency.get(b)?.rank ?? Number.MAX_SAFE_INTEGER) || (a < b ? -1 : a > b ? 1 : 0),
+  );
+
+  for (const character of candidates.slice(0, MAX_CANDIDATES)) {
     // Every level HanziJS decomposes at (once, radical, graphical, primitive),
     // plus any learned glyph the decomposition folds away.
     const components = componentsOf(character);

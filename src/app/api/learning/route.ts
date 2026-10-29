@@ -15,12 +15,18 @@ export const dynamic = "force-dynamic";
 const MAX_LEARNED = 500;
 /**
  * Safety stop for the number of characters decomposed per request. The learned
- * set is ordered differently by every caller (the newset-first store vs the
+ * set is ordered differently by every caller (the newest-first store vs the
  * time machine's oldest-first replay), so this may never be applied in list
  * order: whatever survives is chosen by frequency, never by arrival.
  */
 const MAX_CANDIDATES = 4000;
 const MAX_PER_SECTION = 120;
+/**
+ * How many partly-unlocked characters travel over the wire. The counts, the
+ * histogram and the bucket filters always cover every unlock; only the grid is
+ * bounded, closest-to-done first, so the page never renders thousands of cards.
+ */
+const MAX_PARTIAL = 600;
 
 type CharacterSummary = {
   glyph: string;
@@ -77,7 +83,8 @@ export async function GET(request: Request) {
     };
   };
 
-  const learnedSet = new Set(learned);
+  /** Jun Da rank, or "unranked" — the only tie-breaker candidate order may use. */
+  const rankOf = (glyph: string) => frequency.get(glyph)?.rank ?? Number.MAX_SAFE_INTEGER;
 
   // Characters built on the learned glyphs. A learned radical reaches its whole
   // family — 丶 covers the 41 characters that use any dot radical (丶 冫 ⺀) —
@@ -113,9 +120,7 @@ export async function GET(request: Request) {
   // the same learned set always decompose the same characters and return the
   // same counts.
   const candidates = [...family.keys()].sort(
-    (a, b) =>
-      (frequency.get(a)?.rank ?? Number.MAX_SAFE_INTEGER) -
-        (frequency.get(b)?.rank ?? Number.MAX_SAFE_INTEGER) || (a < b ? -1 : a > b ? 1 : 0),
+    (a, b) => rankOf(a) - rankOf(b) || (a < b ? -1 : a > b ? 1 : 0),
   );
 
   for (const character of candidates.slice(0, MAX_CANDIDATES)) {
@@ -236,8 +241,8 @@ export async function GET(request: Request) {
     {
       learned: learned.map(summary),
       full: full.slice(0, MAX_PER_SECTION),
-      // Every partly-unlocked character is returned — the tab is the full list.
-      partial: partialForResponse,
+      // Closest to done first; the counts above still describe every unlock.
+      partial: partialForResponse.slice(0, MAX_PARTIAL),
       counts: {
         learned: learned.length,
         full: full.length,

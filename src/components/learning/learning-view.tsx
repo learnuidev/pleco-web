@@ -429,6 +429,13 @@ export function LearningView() {
               </div>
             ) : null}
 
+            {partialFilter === null && payload.partial.length < payload.counts.partial ? (
+              <p className="text-[10.5px] text-muted-foreground">
+                Showing the {payload.partial.length} closest to unlocked of{" "}
+                {payload.counts.partial} — pick a bar above to reach the rest.
+              </p>
+            ) : null}
+
             <PartialGrid
               items={visiblePartial}
               loading={loading}

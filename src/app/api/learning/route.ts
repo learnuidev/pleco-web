@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 
+import { glosses } from "@/lib/dictionary/cedict";
 import {
   canonicalGlyph,
   componentKey,
   componentsOf,
   taughtKeys as keysFor,
 } from "@/lib/dictionary/components";
-import { getFrequencyTable } from "@/lib/dictionary/frequency";
+import { findRadicalMatch, getFrequencyTable } from "@/lib/dictionary/frequency";
+import { getDocById, getSearchIndex } from "@/lib/dictionary/search";
 import { componentCharacters } from "@/lib/hanzi";
+import { pinyinToMarks } from "@/lib/pinyin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +30,19 @@ const MAX_PER_SECTION = 120;
  * bounded, closest-to-done first, so the page never renders thousands of cards.
  */
 const MAX_PARTIAL = 600;
+
+/**
+ * The first CC-CEDICT entry whose headword is exactly this glyph — the source of
+ * a pinyin and gloss for building blocks the frequency table never ranks.
+ */
+function firstEntry(glyph: string): { pinyin: string; gloss: string } | null {
+  for (const id of getSearchIndex().byWord.get(glyph) ?? []) {
+    const doc = getDocById(id);
+    if (!doc) continue;
+    return { pinyin: doc.entry.pinyin, gloss: glosses(doc.entry.definition)[0] ?? "" };
+  }
+  return null;
+}
 
 /**
  * Grow the taught set to a fixpoint: a character whose components are all
@@ -124,12 +140,22 @@ export async function GET(request: Request) {
   ).slice(0, MAX_LEARNED);
 
   const frequency = getFrequencyTable();
+  /**
+   * A learned glyph is not always a ranked character: radicals and building
+   * blocks (廾, 亻, 丶) never appear in the frequency table, so they need the
+   * dictionary and the Kangxi table to carry a pinyin and a gloss. Without this
+   * the Learned list renders them as an empty row and they look lost.
+   */
   const summary = (glyph: string): CharacterSummary => {
     const record = frequency.get(glyph);
+    const entry = !record ? firstEntry(glyph) : null;
+    const radical = !record && !entry ? findRadicalMatch([glyph]) : null;
     return {
       glyph,
-      pinyin: record?.pinyin.split("/")[0] ?? "",
-      meaning: record?.meaning ?? "",
+      pinyin:
+        record?.pinyin.split("/")[0] ??
+        (entry ? pinyinToMarks(entry.pinyin.split("/")[0]) : ""),
+      meaning: record?.meaning ?? entry?.gloss ?? radical?.meaning ?? "",
       rank: record?.rank ?? null,
     };
   };

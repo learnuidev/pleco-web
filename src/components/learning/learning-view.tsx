@@ -116,9 +116,10 @@ export function LearningView() {
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
 
-  // Replay drives the learned set every tab reads from.
+  // Replay drives the learned set every tab reads from. Step 0 is empty — the
+  // timeline starts before the first glyph was learned.
   const replayLearned = useMemo(
-    () => events.slice(0, Math.min(step + 1, events.length)).map((event) => event.glyph),
+    () => events.slice(0, Math.min(step, events.length)).map((event) => event.glyph),
     [events, step],
   );
   const effectiveLearned = replay ? replayLearned : state.learned;
@@ -133,12 +134,12 @@ export function LearningView() {
     }
   };
 
-  // Auto-play: one learned glyph every 900ms, stopping on the last step.
+  // Auto-play: one learned glyph every 900ms, stopping once all are revealed.
   useEffect(() => {
     if (!replay || !playing) return;
     const timer = window.setInterval(() => {
       setStep((current) => {
-        if (current >= events.length - 1) {
+        if (current >= events.length) {
           setPlaying(false);
           return current;
         }
@@ -478,22 +479,22 @@ export function LearningView() {
           </Button>
           <Button variant={playing ? "default" : "outline"} size="icon-sm" className="rounded-full"
             aria-label={playing ? "Pause replay" : "Play replay"}
-            onClick={() => { if (!playing && step >= events.length - 1) setStep(0); setPlaying((value) => !value); }}>
+            onClick={() => { if (!playing && step >= events.length) setStep(0); setPlaying((value) => !value); }}>
             {playing ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
           </Button>
           <Button variant="ghost" size="icon-sm" className="rounded-full" aria-label="Next step"
-            onClick={() => { setPlaying(false); setStep((current) => Math.min(events.length - 1, current + 1)); }}>
+            onClick={() => { setPlaying(false); setStep((current) => Math.min(events.length, current + 1)); }}>
             <SkipForward className="size-3.5 rotate-90" />
           </Button>
           <Button variant="ghost" size="icon-sm" className="rounded-full" aria-label="Last step"
-            onClick={() => { setPlaying(false); setStep(Math.max(0, events.length - 1)); }}>
+            onClick={() => { setPlaying(false); setStep(events.length); }}>
             <SkipForward className="size-3.5" />
           </Button>
 
           <input
             type="range"
             min={0}
-            max={Math.max(0, events.length - 1)}
+            max={events.length}
             value={step}
             onChange={(event) => { setPlaying(false); setStep(Number(event.target.value)); }}
             aria-label="Replay progress"
@@ -501,12 +502,12 @@ export function LearningView() {
           />
 
           <span className="tabular shrink-0 text-[11px] text-muted-foreground">
-            step {events.length === 0 ? 0 : step + 1} / {events.length}
+            step {step} / {events.length}
           </span>
-          {events[step] ? (
+          {step > 0 ? (
             <span className="inline-flex shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground">
-              <Glyph size="sm" className="text-foreground">{events[step].glyph}</Glyph>
-              {events[step].at ? new Date(events[step].at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+              <Glyph size="sm" className="text-foreground">{events[step - 1].glyph}</Glyph>
+              {events[step - 1].at ? new Date(events[step - 1].at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
             </span>
           ) : null}
           <span className="tabular shrink-0 rounded-full bg-primary/10 px-1.5 py-px text-[10px] text-primary">

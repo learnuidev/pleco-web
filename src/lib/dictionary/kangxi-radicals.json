@@ -49,16 +49,7 @@
   "meaning": "Slash",
   "pinyin": "piě",
   "strokes": 1,
-  "variants": [
-   {
-    "glyph": "乀",
-    "strokes": 1
-   },
-   {
-    "glyph": "乁",
-    "strokes": 1
-   }
-  ],
+  "variants": [],
   "examples": [
    "乂",
    "乃",
@@ -517,24 +508,18 @@
   "meaning": "Go",
   "pinyin": "zhǐ",
   "strokes": 3,
-  "variants": [],
+  "variants": [
+   {
+    "glyph": "夊",
+    "strokes": 3
+   }
+  ],
   "examples": [
    "处",
    "复",
    "备",
-   "冬"
-  ]
- },
- {
-  "number": 35,
-  "glyph": "夊",
-  "meaning": "Go slowly",
-  "pinyin": "suī",
-  "strokes": 3,
-  "variants": [],
-  "examples": [
+   "冬",
    "夌",
-   "复",
    "変"
   ]
  },

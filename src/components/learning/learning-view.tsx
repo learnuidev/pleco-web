@@ -297,7 +297,20 @@ export function LearningView() {
               <StatCard label="Average progress" value={`${payload.averagePercent}%`} hint="across your unlocks" />
             </div>
 
-            <LearningProgressChart histogram={payload.histogram} />
+            <LearningProgressChart
+              histogram={payload.histogram}
+              selected={partialFilter}
+              onSelect={(bucket) => {
+                // The 100% column is the fully-unlocked set; every other bucket
+                // is a slice of the partly-unlocked list.
+                if (bucket === 100) {
+                  goToTab("full");
+                  return;
+                }
+                setPartialFilter(bucket);
+                goToTab("partial");
+              }}
+            />
 
             {payload.partial.length > 0 ? (
               <section>

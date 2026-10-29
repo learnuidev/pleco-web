@@ -399,7 +399,7 @@ export function LearningView() {
               <LearningProgressChart
                 histogram={payload.partialHistogram}
                 title="Partly unlocked by progress"
-                subtitle={`${payload.counts.partial} characters in progress · click a bar to filter`}
+                subtitle={`${payload.counts.partial} characters in progress · click a column to filter`}
                 buckets={PARTIAL_BUCKETS}
                 selected={partialFilter}
                 onSelect={(bucket) =>

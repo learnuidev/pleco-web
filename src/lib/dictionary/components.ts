@@ -2,14 +2,17 @@
  * Learning components: what a character is made of, and how much of that the
  * user already knows.
  *
- * A character's components are the union of three HanziJS decomposition levels —
- * once, radical and primitive — because the radical pass gives the meaningful
- * radicals (未 = 木 + 一) and the once/primitive passes add the first split and
- * the final building blocks. The graphical pass is left out of the learned /
- * partially-learned equation: its extra pieces are not separate things a learner
- * studies, so counting them only diluted the percentage. Bare stroke symbols are
- * skipped, the character is not its own component, and same-meaning radical forms
- * (丶 / ⺀) collapse into one component shown by its canonical form (⺀ → 丶).
+ * A character's components are the union of all four HanziJS decomposition levels
+ * — once, radical, graphical and primitive — because the radical pass gives the
+ * meaningful radicals (未 = 木 + 一, 为 = 力 + ⺀), the graphical pass surfaces
+ * pieces it folds together, and the once/primitive passes add the first split and
+ * the final building blocks.
+ *
+ * The graphical pass also emits shapes nobody studies — bare strokes (㇒, ㇆ …)
+ * and stray layout glyphs (the katakana コ) — so glyphs outside the ideograph and
+ * radical-form ranges are dropped. The character is not its own component, and
+ * same-meaning radical forms (丶 / ⺀) collapse into one component shown by its
+ * canonical form (⺀ → 丶).
  */
 
 import { getRadicals } from "./frequency";
@@ -48,15 +51,34 @@ export function taughtKeys(learned: string[]): Set<string> {
 }
 
 /**
+ * Whether a decomposition glyph is a component a learner can actually study:
+ * ideographs, their extension blocks, and the radical forms the decompositions
+ * use (⺀ ⻊ …). Bare strokes (CJK Strokes, U+31C0–U+31EF) and stray layout glyphs
+ * (the katakana コ, U+30B3) fall outside and are skipped.
+ */
+function isComponentGlyph(glyph: string): boolean {
+  const code = glyph.codePointAt(0);
+  if (code === undefined) return false;
+  return (
+    (code >= 0x2e80 && code <= 0x2eff) || // CJK radical forms (⺀ ⻊ …)
+    (code >= 0x3400 && code <= 0x4dbf) || // CJK extension A
+    (code >= 0x4e00 && code <= 0x9fff) || // CJK unified ideographs
+    (code >= 0xf900 && code <= 0xfaff) || // CJK compatibility ideographs
+    (code >= 0x20000 && code <= 0x2fa1f) || // extensions B–F and compatibility
+    (code >= 0x30000 && code <= 0x323af) // extensions G–H
+  );
+}
+
+/**
  * The character's components as `key → display glyph`, canonicalised and with
- * the character itself removed. The graphical level is deliberately excluded —
- * see the module comment — so this is the set the learned percentage counts.
+ * the character itself removed. This is the set the learned percentage counts.
  */
 export function componentsOf(character: string): Map<string, string> {
   const decomposition = decompose(character);
   const components = new Map<string, string>();
   const add = (glyph: string | undefined) => {
     if (!glyph || glyph === "No glyph available" || glyph === character) return;
+    if (!isComponentGlyph(glyph)) return;
     const key = componentKey(glyph);
     if (!components.has(key)) components.set(key, canonicalGlyph(key) ?? glyph);
   };
@@ -64,6 +86,7 @@ export function componentsOf(character: string): Map<string, string> {
   for (const level of [
     decomposition?.components1, // once
     decomposition?.components2, // radical
+    decomposition?.components3, // graphical
     decomposition?.components4, // primitive
   ]) {
     for (const glyph of level ?? []) add(glyph);

@@ -175,8 +175,8 @@ export async function GET(request: Request) {
   );
 
   for (const character of candidates.slice(0, MAX_CANDIDATES)) {
-    // Every level HanziJS decomposes at (once, radical, graphical, primitive),
-    // plus any learned glyph the decomposition folds away.
+    // Every level the learning equation counts (once, radical, primitive), plus
+    // any learned glyph the decomposition folds away.
     const components = componentsOf(character);
     for (const glyph of family.get(character) ?? []) {
       if (!glyph || glyph === character) continue;

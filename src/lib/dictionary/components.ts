@@ -2,13 +2,14 @@
  * Learning components: what a character is made of, and how much of that the
  * user already knows.
  *
- * A character's components are the union of all four HanziJS decomposition
- * levels — once, radical, graphical and primitive — because the radical pass
- * gives the meaningful radicals (未 = 木 + 一, 为 = 力 + ⺀), the graphical pass
- * surfaces pieces it folds together, and the once/primitive passes add the first
- * split and the final building blocks. Bare stroke symbols are skipped, the
- * character is not its own component, and same-meaning radical forms (丶 / ⺀)
- * collapse into one component shown by its canonical form (⺀ → 丶).
+ * A character's components are the union of three HanziJS decomposition levels —
+ * once, radical and primitive — because the radical pass gives the meaningful
+ * radicals (未 = 木 + 一) and the once/primitive passes add the first split and
+ * the final building blocks. The graphical pass is left out of the learned /
+ * partially-learned equation: its extra pieces are not separate things a learner
+ * studies, so counting them only diluted the percentage. Bare stroke symbols are
+ * skipped, the character is not its own component, and same-meaning radical forms
+ * (丶 / ⺀) collapse into one component shown by its canonical form (⺀ → 丶).
  */
 
 import { getRadicals } from "./frequency";
@@ -48,7 +49,8 @@ export function taughtKeys(learned: string[]): Set<string> {
 
 /**
  * The character's components as `key → display glyph`, canonicalised and with
- * the character itself removed.
+ * the character itself removed. The graphical level is deliberately excluded —
+ * see the module comment — so this is the set the learned percentage counts.
  */
 export function componentsOf(character: string): Map<string, string> {
   const decomposition = decompose(character);
@@ -62,7 +64,6 @@ export function componentsOf(character: string): Map<string, string> {
   for (const level of [
     decomposition?.components1, // once
     decomposition?.components2, // radical
-    decomposition?.components3, // graphical
     decomposition?.components4, // primitive
   ]) {
     for (const glyph of level ?? []) add(glyph);

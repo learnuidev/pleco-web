@@ -140,7 +140,7 @@ export function ColumnChart<D>({
             </defs>
             <CartesianGrid vertical={false} strokeDasharray="3 6" stroke="var(--border)" strokeOpacity={0.7} />
             <XAxis
-              dataKey={xKey}
+              dataKey={(datum: D) => datum[xKey]}
               tickLine={false}
               axisLine={false}
               interval={0}
@@ -151,7 +151,12 @@ export function ColumnChart<D>({
               cursor={{ fill: "var(--foreground)", fillOpacity: 0.04 }}
               content={<TooltipContent />}
             />
-            <Bar dataKey={yKey} radius={[5, 5, 0, 0]} maxBarSize={maxBarSize} isAnimationActive={false}>
+            <Bar
+              dataKey={(datum: D) => datum[yKey]}
+              radius={[5, 5, 0, 0]}
+              maxBarSize={maxBarSize}
+              isAnimationActive={false}
+            >
               {data.map((datum, index) => {
                 const value = datum[xKey];
                 const isSelected = selected !== null && value === selected;
@@ -164,7 +169,7 @@ export function ColumnChart<D>({
                 );
               })}
               <LabelList
-                dataKey={yKey}
+                dataKey={(datum: D) => datum[yKey]}
                 position="top"
                 fill="var(--muted-foreground)"
                 fontSize={9}
